@@ -7,6 +7,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import numpy as np
 import pickle
+import matplotlib.pyplot as plt
 
 st.set_page_config(
     page_title="Báo Cáo Phân Tích Dữ Liệu Nội Bộ", 
@@ -134,21 +135,6 @@ st.markdown("""
         margin-bottom: 6px;
     }
     
-    /* Sidebar Filter */
-    .filter-section {
-        background: #ffffff;
-        padding: 16px 20px;
-        border-radius: 10px;
-        border: 1px solid #eef2f6;
-        margin-bottom: 1rem;
-    }
-    .filter-section .filter-title {
-        font-size: 13px;
-        font-weight: 600;
-        color: #0f1724;
-        margin-bottom: 10px;
-    }
-    
     /* Tabs styling */
     .stTabs [data-baseweb="tab-list"] {
         gap: 0;
@@ -183,14 +169,6 @@ st.markdown("""
         letter-spacing: 0.3px;
     }
     
-    /* Expander */
-    .streamlit-expanderHeader {
-        font-size: 13px !important;
-        font-weight: 500 !important;
-        color: #0f1724 !important;
-    }
-    
-    /* Footer */
     .report-footer {
         text-align: center;
         color: #94a3b8;
@@ -200,27 +178,9 @@ st.markdown("""
         margin-top: 1.5rem;
     }
     
-    /* Responsive */
     @media (max-width: 768px) {
         .metric-grid { grid-template-columns: repeat(3, 1fr); }
         .report-header { flex-direction: column; align-items: flex-start; gap: 8px; }
-    }
-    
-    /* SHAP specific */
-    .shap-summary-box {
-        background: #ffffff;
-        padding: 16px;
-        border-radius: 10px;
-        border: 1px solid #eef2f6;
-    }
-    .feature-importance-table td {
-        font-size: 13px;
-        padding: 4px 8px;
-    }
-    
-    hr {
-        margin: 0.8rem 0;
-        border-color: #eef2f6;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -414,6 +374,7 @@ with tab_overview:
             xaxis_title=None, yaxis_title="Doanh thu",
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
+            showlegend=False
         )
         fig_cat.update_xaxis(showgrid=False)
         fig_cat.update_yaxis(gridcolor='#f1f5f9')
@@ -488,11 +449,9 @@ with tab_prediction:
         
         if shap_available:
             try:
-                # Load SHAP values
                 import shap
-                from sklearn.ensemble import GradientBoostingRegressor
                 
-                # Load data
+                # Load data for SHAP
                 conn = duckdb.connect()
                 interactions = conn.execute("""
                     SELECT customer_id, product_id, SUM(Total_quantity) AS total_qty
@@ -500,9 +459,7 @@ with tab_prediction:
                     WHERE product_id IS NOT NULL AND customer_id IS NOT NULL
                     GROUP BY customer_id, product_id
                 """).fetchdf()
-                conn.close()
                 
-                # Build features
                 dac_trung = conn.execute("""
                     SELECT customer_id, AVG(loyalty_points) AS avg_loyalty_points,
                            SUM(Total_quantity) AS tong_so_luong_da_mua,
@@ -518,9 +475,11 @@ with tab_prediction:
                 df_surrogate['gender'] = 'M'
                 df_surrogate = pd.get_dummies(df_surrogate, columns=['product_id'])
                 df_surrogate = df_surrogate.fillna(0)
-                X = df_surrogate.drop(columns=['customer_id', 'total_qty'], errors='ignore')
                 
-                # Calculate SHAP values
+                cols_to_drop = ['customer_id', 'total_qty']
+                cols_to_drop = [c for c in cols_to_drop if c in df_surrogate.columns]
+                X = df_surrogate.drop(columns=cols_to_drop)
+                
                 explainer = shap.TreeExplainer(surrogate_model)
                 shap_values = explainer.shap_values(X)
                 
@@ -542,7 +501,6 @@ with tab_prediction:
         
         if shap_available:
             try:
-                # Feature importance from SHAP
                 shap_importance = pd.DataFrame({
                     'feature': X.columns,
                     'importance': np.abs(shap_values).mean(axis=0)
@@ -714,10 +672,81 @@ with tab_ai:
                 try:
                     # Prepare data summary
                     if analysis_type == "📊 Tổng quan doanh thu":
-                        data = df_filtered.groupby("product_name").agg({"revenue": "sum", "quantity": "sum", "orders": "sum"}).reset_index().sort_values("revenue", ascending=False).head(10)
+                        data = df_filtered.groupby("product_name").agg({
+                            "revenue": "sum", 
+                            "quantity": "sum", 
+                            "orders": "sum"
+                        }).reset_index().sort_values("revenue", ascending=False).head(10)
                         prompt_instruction = "Dữ liệu top 10 sản phẩm về doanh thu, số lượng và đơn hàng."
                     elif analysis_type == "🏆 Phân tích sản phẩm":
-                        data = df_filtered.groupby(["category", "product_name"]).agg({"revenue": "sum", "quantity": "sum"}).reset_index().sort_values("revenue", ascending=False).head(10)
+                        data = df_filtered.groupby(["category", "product_name"]).agg({
+                            "revenue": "sum", 
+                            "quantity": "sum"
+                        }).reset_index().sort_values("revenue", ascending=False).head(10)
                         prompt_instruction = "Dữ liệu top 10 sản phẩm theo danh mục."
                     elif analysis_type == "👥 Phân tích khách hàng":
-                        data = df_filtered.groupby(["customer_name", "gender"]).agg({"revenue
+                        data = df_filtered.groupby(["customer_name", "gender"]).agg({
+                            "revenue": "sum",
+                            "orders": "sum",
+                            "loyalty_points": "sum"
+                        }).reset_index().sort_values("revenue", ascending=False).head(10)
+                        prompt_instruction = "Dữ liệu top 10 khách hàng."
+                    elif analysis_type == "📍 Phân tích khu vực":
+                        data = df_filtered.groupby(["state", "city"]).agg({
+                            "revenue": "sum",
+                            "quantity": "sum",
+                            "orders": "sum"
+                        }).reset_index().sort_values("revenue", ascending=False).head(10)
+                        prompt_instruction = "Dữ liệu top 10 khu vực."
+                    else:  # Đề xuất chiến lược
+                        data = df_filtered.groupby("product_name").agg({
+                            "revenue": "sum", 
+                            "quantity": "sum"
+                        }).reset_index().sort_values("revenue", ascending=False).head(10)
+                        prompt_instruction = "Dữ liệu top 10 sản phẩm về doanh thu và số lượng. Hãy đề xuất chiến lược kinh doanh."
+                    
+                    total_revenue = df_filtered["revenue"].sum()
+                    total_orders = df_filtered["orders"].sum()
+                    avg_loyalty = df_filtered["avg_loyalty_points"].mean()
+                    unique_customers = len(df_filtered['customer_id'].unique())
+                    
+                    prompt = f"""
+                    {prompt_instruction}
+                    
+                    Dữ liệu:
+                    {data.to_string(index=False)}
+                    
+                    Thông tin tổng quan:
+                    - Tổng doanh thu: {total_revenue:,.0f} VND
+                    - Tổng đơn hàng: {total_orders}
+                    - Khách hàng: {unique_customers}
+                    - Điểm TL TB: {avg_loyalty:.0f}
+                    
+                    Yêu cầu:
+                    1. 3-5 nhận xét quan trọng
+                    2. 3-5 đề xuất chiến lược
+                    3. Cơ hội và thách thức
+                    
+                    Trả lời bằng tiếng Việt, sử dụng markdown.
+                    """
+                    
+                    client = Groq(api_key=GROQ_API_KEY)
+                    chat_completion = client.chat.completions.create(
+                        messages=[{"role": "user", "content": prompt}],
+                        model="llama-3.1-8b-instant",
+                        temperature=0.3,
+                        max_tokens=1024
+                    )
+                    
+                    st.success("✅ Phân tích hoàn tất!")
+                    st.markdown(chat_completion.choices[0].message.content)
+                    
+                except Exception as e:
+                    st.error(f"❌ Lỗi: {e}")
+
+# ===================== FOOTER =====================
+st.markdown(f"""
+<div class="report-footer">
+    Báo Cáo Phân Tích Dữ Liệu Nội Bộ | Cập nhật: {datetime.now().strftime('%d/%m/%Y %H:%M')}
+</div>
+""", unsafe_allow_html=True)
