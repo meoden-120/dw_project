@@ -7,7 +7,6 @@ import pandas as pd
 from datetime import datetime, timedelta
 import numpy as np
 import pickle
-import matplotlib.pyplot as plt
 
 st.set_page_config(
     page_title="Báo Cáo Phân Tích Dữ Liệu Nội Bộ", 
@@ -181,6 +180,79 @@ st.markdown("""
     @media (max-width: 768px) {
         .metric-grid { grid-template-columns: repeat(3, 1fr); }
         .report-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    }
+    
+    /* SHAP Waterfall */
+    .shap-waterfall-container {
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #eef2f6;
+    }
+    .shap-waterfall-container .shap-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #0f1724;
+        margin-bottom: 12px;
+    }
+    .shap-row {
+        display: flex;
+        align-items: center;
+        padding: 4px 0;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 13px;
+    }
+    .shap-row .shap-feature {
+        width: 35%;
+        color: #0f1724;
+        font-weight: 500;
+    }
+    .shap-row .shap-value {
+        width: 15%;
+        text-align: right;
+        font-weight: 600;
+        padding-right: 10px;
+    }
+    .shap-row .shap-bar {
+        flex: 1;
+        height: 18px;
+        border-radius: 4px;
+        position: relative;
+        overflow: hidden;
+    }
+    .shap-row .shap-bar .bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
+    .shap-row .shap-impact {
+        width: 20%;
+        font-size: 12px;
+        padding-left: 10px;
+        color: #64748b;
+    }
+    .shap-base {
+        background: #f1f5f9;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #0f1724;
+        margin-bottom: 10px;
+        text-align: center;
+        font-weight: 500;
+    }
+    .shap-base span {
+        color: #3b82f6;
+    }
+    .shap-prediction {
+        background: #dbeafe;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #1e40af;
+        margin-top: 10px;
+        text-align: center;
+        font-weight: 600;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -441,7 +513,7 @@ with tab_prediction:
         shap_available = False
         st.warning("⚠️ Chưa tìm thấy mô hình SHAP. Vui lòng chạy notebook huấn luyện để tạo file 'shap_surrogate_model.pkl'")
     
-    col1, col2 = st.columns([3, 2], gap="medium")
+    col1, col2 = st.columns([2, 1], gap="medium")
     
     with col1:
         st.markdown('<div class="chart-box">', unsafe_allow_html=True)
@@ -483,15 +555,22 @@ with tab_prediction:
                 explainer = shap.TreeExplainer(surrogate_model)
                 shap_values = explainer.shap_values(X)
                 
+                # Tạo SHAP summary plot với matplotlib (vẫn cần nhưng import bên trong)
+                import matplotlib.pyplot as plt
                 fig, ax = plt.subplots(figsize=(10, 6))
                 shap.summary_plot(shap_values, X, show=False, max_display=12)
                 plt.tight_layout()
                 st.pyplot(fig)
                 plt.close()
+                
+                # Lưu shap_values để dùng cho waterfall
+                st.session_state['shap_values'] = shap_values
+                st.session_state['X'] = X
+                
             except Exception as e:
                 st.error(f"Lỗi khi tính SHAP: {e}")
         else:
-            st.info("💡 Mô hình SHAP chưa được huấn luyện. Kết quả sẽ hiển thị khi có file mô hình.")
+            st.info("💡 Mô hình SHAP chưa được huấn luyện.")
         
         st.markdown('</div>', unsafe_allow_html=True)
     
@@ -499,11 +578,11 @@ with tab_prediction:
         st.markdown('<div class="chart-box">', unsafe_allow_html=True)
         st.markdown('<div class="chart-label">📈 Đặc trưng ảnh hưởng nhất</div>', unsafe_allow_html=True)
         
-        if shap_available:
+        if shap_available and 'shap_values' in st.session_state:
             try:
                 shap_importance = pd.DataFrame({
-                    'feature': X.columns,
-                    'importance': np.abs(shap_values).mean(axis=0)
+                    'feature': st.session_state['X'].columns,
+                    'importance': np.abs(st.session_state['shap_values']).mean(axis=0)
                 }).sort_values('importance', ascending=False).head(8)
                 
                 fig = px.bar(shap_importance, x='importance', y='feature', orientation='h',
@@ -519,11 +598,64 @@ with tab_prediction:
                 fig.update_xaxis(gridcolor='#f1f5f9')
                 st.plotly_chart(fig, use_container_width=True)
             except:
-                st.info("Đang tải dữ liệu đặc trưng...")
+                st.info("Đang tải dữ liệu...")
         else:
-            st.info("Mô hình chưa sẵn sàng")
+            st.info("Chưa có dữ liệu SHAP")
         
         st.markdown('</div>', unsafe_allow_html=True)
+    
+    # SHAP Waterfall - Giải thích cho một khách hàng cụ thể
+    if shap_available and 'shap_values' in st.session_state:
+        st.markdown('<div class="section-title" style="margin-top:1rem;"><span class="icon">💡</span> Giải thích dự đoán cho khách hàng mẫu</div>', unsafe_allow_html=True)
+        
+        try:
+            # Lấy một khách hàng mẫu
+            sample_idx = 0
+            sample_shap = st.session_state['shap_values'][sample_idx]
+            sample_X = st.session_state['X'].iloc[sample_idx]
+            
+            # Tạo waterfall plot bằng plotly
+            feature_names = st.session_state['X'].columns
+            shap_df = pd.DataFrame({
+                'feature': feature_names,
+                'shap_value': sample_shap
+            })
+            shap_df = shap_df.sort_values('shap_value', key=abs, ascending=False)
+            shap_df = shap_df.head(8)  # Lấy top 8 đặc trưng
+            
+            # Tạo bar chart
+            colors = ['#22c55e' if x > 0 else '#ef4444' for x in shap_df['shap_value']]
+            fig_waterfall = px.bar(
+                shap_df, 
+                x='shap_value', 
+                y='feature',
+                orientation='h',
+                color='shap_value',
+                color_continuous_scale=['#ef4444', '#fbbf24', '#22c55e'],
+                title="Đóng góp của từng đặc trưng vào dự đoán"
+            )
+            fig_waterfall.update_layout(
+                height=300,
+                margin=dict(l=20, r=20, t=40, b=20),
+                xaxis_title="SHAP Value (ảnh hưởng đến dự đoán)",
+                yaxis_title=None,
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                coloraxis_showscale=False
+            )
+            fig_waterfall.update_xaxis(gridcolor='#f1f5f9')
+            st.plotly_chart(fig_waterfall, use_container_width=True)
+            
+            # Giải thích ngắn
+            st.markdown("""
+            <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; font-size: 13px; color: #0f1724; border-left: 3px solid #3b82f6;">
+                <b>📌 Giải thích:</b> Các thanh màu xanh <span style="color:#22c55e;">⬆️</span> làm tăng khả năng được gợi ý, 
+                màu đỏ <span style="color:#ef4444;">⬇️</span> làm giảm khả năng được gợi ý.
+            </div>
+            """, unsafe_allow_html=True)
+            
+        except Exception as e:
+            st.warning(f"Không thể hiển thị waterfall: {e}")
     
     # Model performance
     st.markdown('<div class="section-title" style="margin-top:1rem;"><span class="icon">📊</span> Hiệu Suất Mô Hình</div>', unsafe_allow_html=True)
