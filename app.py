@@ -15,7 +15,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS - Giao diện nội bộ đơn giản
+# Custom CSS
 st.markdown("""
 <style>
     .main { background: #f5f7fa; }
@@ -335,13 +335,21 @@ with tab_overview:
 with tab_prediction:
     st.markdown('<div class="section-title">Dự đoán & Giải thích mô hình (SHAP)</div>', unsafe_allow_html=True)
     
+    # Kiểm tra thư viện shap
+    try:
+        import shap
+        shap_available = True
+    except ImportError:
+        shap_available = False
+        st.warning("⚠️ Thư viện SHAP chưa được cài đặt. Để cài đặt, chạy: pip install shap")
+    
     # Kiểm tra file mô hình
     shap_file_exists = os.path.exists('shap_surrogate_model.pkl')
     
     if not shap_file_exists:
         st.markdown("""
         <div class="info-box">
-            <b>⚠️ Chưa có mô hình SHAP</b><br>
+            <b>📁 Chưa có mô hình SHAP</b><br>
             Để sử dụng tính năng này, bạn cần:
             <ol style="margin: 6px 0 0 20px; font-size: 13px;">
                 <li>Chạy file <b>GiaiDoan3_Intelligence_NKDL_(2).ipynb</b> trên Colab</li>
@@ -357,9 +365,8 @@ with tab_prediction:
         st.markdown('<div class="chart-box">', unsafe_allow_html=True)
         st.markdown('<div class="chart-label">Đóng góp của các đặc trưng (SHAP Summary)</div>', unsafe_allow_html=True)
         
-        if shap_file_exists:
+        if shap_available and shap_file_exists:
             try:
-                import shap
                 import matplotlib.pyplot as plt
                 
                 with open('shap_surrogate_model.pkl', 'rb') as f:
@@ -402,10 +409,15 @@ with tab_prediction:
                 st.pyplot(fig)
                 plt.close()
                 
+                st.session_state['shap_values'] = shap_values
+                st.session_state['X'] = X
+                
             except Exception as e:
                 st.error(f"Lỗi khi chạy SHAP: {e}")
-        else:
+        elif shap_available and not shap_file_exists:
             st.info("📁 Upload file shap_surrogate_model.pkl để xem phân tích SHAP")
+        else:
+            st.info("⚠️ Cần cài đặt thư viện shap: pip install shap")
         
         st.markdown('</div>', unsafe_allow_html=True)
     
@@ -413,7 +425,7 @@ with tab_prediction:
         st.markdown('<div class="chart-box">', unsafe_allow_html=True)
         st.markdown('<div class="chart-label">Đặc trưng ảnh hưởng nhất</div>', unsafe_allow_html=True)
         
-        if shap_file_exists and 'X' in locals():
+        if shap_available and shap_file_exists and 'X' in locals():
             try:
                 shap_importance = pd.DataFrame({
                     'feature': X.columns,
