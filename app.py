@@ -300,7 +300,7 @@ with tab_overview:
         if not df_line.empty:
             fig_line = px.line(df_line, x="year_month", y="revenue", markers=True)
             fig_line.update_layout(height=280, margin=dict(l=40, r=20, t=20, b=30), xaxis_title=None, yaxis_title="Doanh thu")
-            st.plotly_chart(fig_line, use_container_width=True)
+            st.plotly_chart(fig_line, width='stretch')
     
     with col2:
         st.markdown('<div class="section-title">Doanh thu theo danh mục</div>', unsafe_allow_html=True)
@@ -308,7 +308,7 @@ with tab_overview:
         if not df_cat.empty:
             fig_cat = px.bar(df_cat, x="category", y="revenue", color="category")
             fig_cat.update_layout(height=280, margin=dict(l=40, r=20, t=20, b=30), xaxis_title=None, yaxis_title="Doanh thu", showlegend=False)
-            st.plotly_chart(fig_cat, use_container_width=True)
+            st.plotly_chart(fig_cat, width='stretch')
     
     col1, col2 = st.columns(2)
     
@@ -318,7 +318,7 @@ with tab_overview:
         if not df_top.empty:
             fig_top = px.bar(df_top, x="revenue", y="product_name", orientation="h", color="revenue")
             fig_top.update_layout(height=300, margin=dict(l=20, r=20, t=10, b=20), xaxis_title="Doanh thu", yaxis_title=None, coloraxis_showscale=False)
-            st.plotly_chart(fig_top, use_container_width=True)
+            st.plotly_chart(fig_top, width='stretch')
     
     with col2:
         st.markdown('<div class="section-title">Doanh thu theo khu vực</div>', unsafe_allow_html=True)
@@ -326,10 +326,10 @@ with tab_overview:
         if not df_state.empty:
             fig_state = px.bar(df_state, x="state", y="revenue", color="revenue")
             fig_state.update_layout(height=300, margin=dict(l=40, r=20, t=10, b=30), xaxis_title=None, yaxis_title="Doanh thu", coloraxis_showscale=False)
-            st.plotly_chart(fig_state, use_container_width=True)
+            st.plotly_chart(fig_state, width='stretch')
     
     with st.expander("Xem dữ liệu chi tiết", expanded=False):
-        st.dataframe(df_filtered, use_container_width=True, height=250)
+        st.dataframe(df_filtered, width='stretch', height=250)
 
 # ===================== TAB 2: PREDICTION & SHAP =====================
 with tab_prediction:
@@ -437,7 +437,7 @@ with tab_prediction:
                 fig.update_layout(height=340, margin=dict(l=10, r=10, t=10, b=10),
                                  xaxis_title="SHAP Value", yaxis_title=None,
                                  coloraxis_showscale=False)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
             except Exception as e:
                 st.info(f"Đang tải... ({e})")
         else:
@@ -463,10 +463,10 @@ with tab_prediction:
             fig_eval.update_layout(height=220, margin=dict(l=40, r=20, t=20, b=30),
                                   legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5))
             fig_eval.update_yaxes(range=[0, 1.1])
-            st.plotly_chart(fig_eval, use_container_width=True)
+            st.plotly_chart(fig_eval, width='stretch')
         
         with col2:
-            st.dataframe(eval_log, use_container_width=True, hide_index=True)
+            st.dataframe(eval_log, width='stretch', hide_index=True)
     except Exception as e:
         st.info(f"Chưa có dữ liệu đánh giá mô hình ({e})")
 
@@ -483,7 +483,7 @@ with tab_customer:
         if not df_gender.empty:
             fig_gender = px.bar(df_gender, x="gender", y="revenue", color="gender")
             fig_gender.update_layout(height=250, margin=dict(l=40, r=20, t=20, b=30), xaxis_title=None, yaxis_title="Doanh thu", showlegend=False)
-            st.plotly_chart(fig_gender, use_container_width=True)
+            st.plotly_chart(fig_gender, width='stretch')
         st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
@@ -493,7 +493,7 @@ with tab_customer:
         if not df_loyalty.empty:
             fig_loyalty = px.bar(df_loyalty, x="loyalty_points", y="customer_name", orientation="h", color="loyalty_points")
             fig_loyalty.update_layout(height=250, margin=dict(l=20, r=20, t=20, b=20), xaxis_title="Điểm tích lũy", yaxis_title=None, coloraxis_showscale=False)
-            st.plotly_chart(fig_loyalty, use_container_width=True)
+            st.plotly_chart(fig_loyalty, width='stretch')
         st.markdown('</div>', unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
@@ -506,7 +506,7 @@ with tab_customer:
         if not df_customer.empty:
             df_customer["avg_order_value"] = df_customer["revenue"] / df_customer["orders"]
             df_customer = df_customer.sort_values("revenue", ascending=False).head(10)
-            st.dataframe(df_customer, use_container_width=True, height=250, hide_index=True)
+            st.dataframe(df_customer, width='stretch', height=250, hide_index=True)
     
     with col2:
         st.markdown('<div class="section-title">ABC - Phân tích Pareto</div>', unsafe_allow_html=True)
@@ -521,12 +521,12 @@ with tab_customer:
             abc_stats.columns = ["Hạng", "Số SP", "Doanh thu"]
             abc_stats["% Doanh thu"] = (abc_stats["Doanh thu"] / abc_stats["Doanh thu"].sum() * 100).round(1)
             
-            st.dataframe(abc_stats, use_container_width=True, hide_index=True)
+            st.dataframe(abc_stats, width='stretch', hide_index=True)
             
             fig_abc_pie = px.pie(abc_stats, values="Doanh thu", names="Hạng",
                                 color_discrete_map={"A": "#22c55e", "B": "#fbbf24", "C": "#ef4444"})
             fig_abc_pie.update_layout(height=180, margin=dict(l=20, r=20, t=10, b=10))
-            st.plotly_chart(fig_abc_pie, use_container_width=True)
+            st.plotly_chart(fig_abc_pie, width='stretch')
 
 # ===================== TAB 4: AI ASSISTANT =====================
 with tab_ai:
@@ -542,7 +542,7 @@ with tab_ai:
             ["Tổng quan doanh thu", "Phân tích sản phẩm", "Phân tích khách hàng", "Phân tích khu vực", "Đề xuất chiến lược"]
         )
         
-        if st.button("Phân tích", use_container_width=True, type="primary"):
+        if st.button("Phân tích", width='stretch', type="primary"):
             with st.spinner("AI đang phân tích..."):
                 try:
                     if analysis_type == "Tổng quan doanh thu":
