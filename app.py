@@ -7,6 +7,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import numpy as np
 import pickle
+import os
 
 st.set_page_config(
     page_title="Báo Cáo Dữ Liệu Nội Bộ", 
@@ -14,19 +15,12 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS - Giao diện nội bộ đơn giản, chuyên nghiệp
+# Custom CSS - Giao diện nội bộ đơn giản
 st.markdown("""
 <style>
-    .main {
-        background: #f5f7fa;
-    }
-    .block-container {
-        padding-top: 1rem;
-        padding-bottom: 0;
-        max-width: 1400px;
-    }
+    .main { background: #f5f7fa; }
+    .block-container { padding-top: 1rem; padding-bottom: 0; max-width: 1400px; }
     
-    /* Header */
     .report-header {
         background: #1a2744;
         padding: 1rem 1.5rem;
@@ -37,16 +31,8 @@ st.markdown("""
         align-items: center;
         flex-wrap: wrap;
     }
-    .report-header h1 {
-        color: #ffffff;
-        font-size: 18px;
-        font-weight: 600;
-        margin: 0;
-    }
-    .report-header .subtitle {
-        color: #94a3b8;
-        font-size: 12px;
-    }
+    .report-header h1 { color: #ffffff; font-size: 18px; font-weight: 600; margin: 0; }
+    .report-header .subtitle { color: #94a3b8; font-size: 12px; }
     .report-header .badge {
         background: rgba(59, 130, 246, 0.2);
         color: #60a5fa;
@@ -56,7 +42,6 @@ st.markdown("""
         border: 1px solid rgba(59, 130, 246, 0.3);
     }
     
-    /* Metric Cards */
     .metric-grid {
         display: grid;
         grid-template-columns: repeat(6, 1fr);
@@ -71,27 +56,12 @@ st.markdown("""
         border: 1px solid #e5e9f0;
         text-align: center;
     }
-    .metric-value {
-        font-size: 20px;
-        font-weight: 700;
-        color: #0f1724;
-        line-height: 1.2;
-    }
-    .metric-label {
-        font-size: 10px;
-        color: #64748b;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-        margin-top: 2px;
-    }
-    .metric-trend {
-        font-size: 10px;
-        margin-top: 2px;
-    }
+    .metric-value { font-size: 20px; font-weight: 700; color: #0f1724; line-height: 1.2; }
+    .metric-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
+    .metric-trend { font-size: 10px; margin-top: 2px; }
     .trend-up { color: #22c55e; }
     .trend-down { color: #ef4444; }
     
-    /* Section Headers */
     .section-title {
         font-size: 14px;
         font-weight: 600;
@@ -101,7 +71,6 @@ st.markdown("""
         border-bottom: 2px solid #e5e9f0;
     }
     
-    /* Chart containers */
     .chart-box {
         background: #ffffff;
         padding: 12px 14px;
@@ -109,14 +78,8 @@ st.markdown("""
         border: 1px solid #e5e9f0;
         margin-bottom: 0.8rem;
     }
-    .chart-box .chart-label {
-        font-size: 11px;
-        color: #64748b;
-        font-weight: 500;
-        margin-bottom: 4px;
-    }
+    .chart-box .chart-label { font-size: 11px; color: #64748b; font-weight: 500; margin-bottom: 4px; }
     
-    /* Tabs */
     .stTabs [data-baseweb="tab-list"] {
         gap: 0;
         background: #ffffff;
@@ -132,12 +95,8 @@ st.markdown("""
         font-weight: 500;
         color: #64748b;
     }
-    .stTabs [aria-selected="true"] {
-        background: #f1f5f9;
-        color: #0f1724;
-    }
+    .stTabs [aria-selected="true"] { background: #f1f5f9; color: #0f1724; }
     
-    /* Filter row */
     .filter-row {
         background: #ffffff;
         padding: 12px 16px;
@@ -146,18 +105,8 @@ st.markdown("""
         margin-bottom: 1rem;
     }
     
-    /* Dataframe */
-    .dataframe {
-        font-size: 12px;
-    }
-    .dataframe thead tr th {
-        background: #f8fafc;
-        color: #0f1724;
-        font-weight: 600;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-    }
+    .dataframe { font-size: 12px; }
+    .dataframe thead tr th { background: #f8fafc; color: #0f1724; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; }
     
     .report-footer {
         text-align: center;
@@ -168,12 +117,18 @@ st.markdown("""
         margin-top: 1rem;
     }
     
-    @media (max-width: 768px) {
-        .metric-grid { grid-template-columns: repeat(3, 1fr); }
+    .info-box {
+        background: #f0f4ff;
+        padding: 12px 16px;
+        border-radius: 6px;
+        border-left: 3px solid #3b82f6;
+        font-size: 13px;
+        color: #1e3a5f;
+        margin: 8px 0;
     }
-    @media (max-width: 480px) {
-        .metric-grid { grid-template-columns: repeat(2, 1fr); }
-    }
+    
+    @media (max-width: 768px) { .metric-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 480px) { .metric-grid { grid-template-columns: repeat(2, 1fr); } }
 </style>
 """, unsafe_allow_html=True)
 
@@ -380,14 +335,21 @@ with tab_overview:
 with tab_prediction:
     st.markdown('<div class="section-title">Dự đoán & Giải thích mô hình (SHAP)</div>', unsafe_allow_html=True)
     
-    # Try to load SHAP model
-    try:
-        with open('shap_surrogate_model.pkl', 'rb') as f:
-            surrogate_model = pickle.load(f)
-        shap_available = True
-    except:
-        shap_available = False
-        st.warning("Chưa tìm thấy mô hình SHAP. Vui lòng chạy notebook huấn luyện.")
+    # Kiểm tra file mô hình
+    shap_file_exists = os.path.exists('shap_surrogate_model.pkl')
+    
+    if not shap_file_exists:
+        st.markdown("""
+        <div class="info-box">
+            <b>⚠️ Chưa có mô hình SHAP</b><br>
+            Để sử dụng tính năng này, bạn cần:
+            <ol style="margin: 6px 0 0 20px; font-size: 13px;">
+                <li>Chạy file <b>GiaiDoan3_Intelligence_NKDL_(2).ipynb</b> trên Colab</li>
+                <li>Download file <b>shap_surrogate_model.pkl</b> về máy</li>
+                <li>Upload file này vào cùng thư mục với app.py</li>
+            </ol>
+        </div>
+        """, unsafe_allow_html=True)
     
     col1, col2 = st.columns([2, 1])
     
@@ -395,10 +357,13 @@ with tab_prediction:
         st.markdown('<div class="chart-box">', unsafe_allow_html=True)
         st.markdown('<div class="chart-label">Đóng góp của các đặc trưng (SHAP Summary)</div>', unsafe_allow_html=True)
         
-        if shap_available:
+        if shap_file_exists:
             try:
                 import shap
                 import matplotlib.pyplot as plt
+                
+                with open('shap_surrogate_model.pkl', 'rb') as f:
+                    surrogate_model = pickle.load(f)
                 
                 conn = duckdb.connect()
                 interactions = conn.execute("""
@@ -437,13 +402,10 @@ with tab_prediction:
                 st.pyplot(fig)
                 plt.close()
                 
-                st.session_state['shap_values'] = shap_values
-                st.session_state['X'] = X
-                
             except Exception as e:
-                st.error(f"Lỗi: {e}")
+                st.error(f"Lỗi khi chạy SHAP: {e}")
         else:
-            st.info("Mô hình SHAP chưa được huấn luyện.")
+            st.info("📁 Upload file shap_surrogate_model.pkl để xem phân tích SHAP")
         
         st.markdown('</div>', unsafe_allow_html=True)
     
@@ -451,11 +413,11 @@ with tab_prediction:
         st.markdown('<div class="chart-box">', unsafe_allow_html=True)
         st.markdown('<div class="chart-label">Đặc trưng ảnh hưởng nhất</div>', unsafe_allow_html=True)
         
-        if shap_available and 'shap_values' in st.session_state:
+        if shap_file_exists and 'X' in locals():
             try:
                 shap_importance = pd.DataFrame({
-                    'feature': st.session_state['X'].columns,
-                    'importance': np.abs(st.session_state['shap_values']).mean(axis=0)
+                    'feature': X.columns,
+                    'importance': np.abs(shap_values).mean(axis=0)
                 }).sort_values('importance', ascending=False).head(8)
                 
                 fig = px.bar(shap_importance, x='importance', y='feature', orientation='h',
@@ -494,7 +456,7 @@ with tab_prediction:
         with col2:
             st.dataframe(eval_log, use_container_width=True, hide_index=True)
     except:
-        st.info("Chưa có dữ liệu đánh giá")
+        st.info("Chưa có dữ liệu đánh giá mô hình")
 
 # ===================== TAB 3: CUSTOMER =====================
 with tab_customer:
