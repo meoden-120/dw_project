@@ -9,170 +9,152 @@ import numpy as np
 import pickle
 
 st.set_page_config(
-    page_title="Báo Cáo Phân Tích Dữ Liệu Nội Bộ", 
+    page_title="Báo Cáo Dữ Liệu Nội Bộ", 
     page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="collapsed"
+    layout="wide"
 )
 
-# Custom CSS - Phong cách báo cáo nội bộ chuyên nghiệp
+# Custom CSS - Giao diện nội bộ đơn giản, chuyên nghiệp
 st.markdown("""
 <style>
-    /* Reset & Base */
     .main {
-        background: #f8f9fc;
-        padding: 0 !important;
+        background: #f5f7fa;
     }
     .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 0 !important;
-        max-width: 1400px !important;
+        padding-top: 1rem;
+        padding-bottom: 0;
+        max-width: 1400px;
     }
     
     /* Header */
     .report-header {
-        background: linear-gradient(135deg, #0f1724 0%, #1a2744 100%);
-        padding: 1.5rem 2rem;
-        border-radius: 12px;
-        margin-bottom: 1.5rem;
-        border-bottom: 3px solid #3b82f6;
+        background: #1a2744;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.2rem;
         display: flex;
         justify-content: space-between;
         align-items: center;
         flex-wrap: wrap;
-        gap: 10px;
     }
     .report-header h1 {
         color: #ffffff;
-        font-size: 20px !important;
+        font-size: 18px;
         font-weight: 600;
         margin: 0;
-        letter-spacing: 0.5px;
     }
     .report-header .subtitle {
         color: #94a3b8;
-        font-size: 13px;
-        margin-top: 2px;
+        font-size: 12px;
     }
     .report-header .badge {
         background: rgba(59, 130, 246, 0.2);
         color: #60a5fa;
-        padding: 4px 14px;
-        border-radius: 20px;
-        font-size: 12px;
+        padding: 3px 12px;
+        border-radius: 16px;
+        font-size: 11px;
         border: 1px solid rgba(59, 130, 246, 0.3);
-    }
-    .header-right {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
     }
     
     /* Metric Cards */
     .metric-grid {
         display: grid;
         grid-template-columns: repeat(6, 1fr);
-        gap: 12px;
-        margin-bottom: 1.5rem;
+        gap: 10px;
+        margin-bottom: 1.2rem;
     }
     .metric-card {
         background: #ffffff;
-        padding: 14px 16px;
-        border-radius: 10px;
+        padding: 12px 14px;
+        border-radius: 8px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-        border: 1px solid #eef2f6;
+        border: 1px solid #e5e9f0;
         text-align: center;
-        transition: all 0.2s;
-    }
-    .metric-card:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        border-color: #d1d9e6;
     }
     .metric-value {
-        font-size: 22px;
+        font-size: 20px;
         font-weight: 700;
         color: #0f1724;
         line-height: 1.2;
     }
     .metric-label {
-        font-size: 11px;
+        font-size: 10px;
         color: #64748b;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
         margin-top: 2px;
     }
     .metric-trend {
-        font-size: 11px;
-        margin-top: 3px;
+        font-size: 10px;
+        margin-top: 2px;
     }
     .trend-up { color: #22c55e; }
     .trend-down { color: #ef4444; }
     
     /* Section Headers */
     .section-title {
-        font-size: 15px !important;
+        font-size: 14px;
         font-weight: 600;
         color: #0f1724;
-        margin-bottom: 0.8rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 2px solid #eef2f6;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .section-title .icon {
-        font-size: 18px;
+        margin-bottom: 0.6rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 2px solid #e5e9f0;
     }
     
     /* Chart containers */
     .chart-box {
         background: #ffffff;
-        padding: 16px;
-        border-radius: 10px;
-        border: 1px solid #eef2f6;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-        height: 100%;
-        min-height: 260px;
+        padding: 12px 14px;
+        border-radius: 8px;
+        border: 1px solid #e5e9f0;
+        margin-bottom: 0.8rem;
     }
     .chart-box .chart-label {
-        font-size: 12px;
+        font-size: 11px;
         color: #64748b;
         font-weight: 500;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
     }
     
-    /* Tabs styling */
+    /* Tabs */
     .stTabs [data-baseweb="tab-list"] {
         gap: 0;
         background: #ffffff;
-        border-radius: 10px;
-        border: 1px solid #eef2f6;
-        padding: 4px;
-        margin-bottom: 1rem;
-        flex-wrap: wrap;
+        border-radius: 8px;
+        border: 1px solid #e5e9f0;
+        padding: 3px;
+        margin-bottom: 0.8rem;
     }
     .stTabs [data-baseweb="tab"] {
-        padding: 6px 20px;
-        border-radius: 8px;
-        font-size: 13px;
+        padding: 5px 16px;
+        border-radius: 6px;
+        font-size: 12px;
         font-weight: 500;
         color: #64748b;
     }
     .stTabs [aria-selected="true"] {
-        background: #f1f5f9 !important;
-        color: #0f1724 !important;
+        background: #f1f5f9;
+        color: #0f1724;
+    }
+    
+    /* Filter row */
+    .filter-row {
+        background: #ffffff;
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: 1px solid #e5e9f0;
+        margin-bottom: 1rem;
     }
     
     /* Dataframe */
     .dataframe {
-        font-size: 13px !important;
+        font-size: 12px;
     }
     .dataframe thead tr th {
-        background: #f8fafc !important;
-        color: #0f1724 !important;
-        font-weight: 600 !important;
-        font-size: 12px !important;
+        background: #f8fafc;
+        color: #0f1724;
+        font-weight: 600;
+        font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.3px;
     }
@@ -180,25 +162,14 @@ st.markdown("""
     .report-footer {
         text-align: center;
         color: #94a3b8;
-        font-size: 11px;
-        padding: 1rem 0 0.5rem;
-        border-top: 1px solid #eef2f6;
-        margin-top: 1.5rem;
-    }
-    
-    /* Filter row */
-    .filter-row {
-        background: #ffffff;
-        padding: 16px 20px;
-        border-radius: 10px;
-        border: 1px solid #eef2f6;
-        margin-bottom: 1.5rem;
+        font-size: 10px;
+        padding: 0.8rem 0;
+        border-top: 1px solid #e5e9f0;
+        margin-top: 1rem;
     }
     
     @media (max-width: 768px) {
         .metric-grid { grid-template-columns: repeat(3, 1fr); }
-        .report-header { flex-direction: column; align-items: flex-start; }
-        .header-right { width: 100%; justify-content: flex-start; }
     }
     @media (max-width: 480px) {
         .metric-grid { grid-template-columns: repeat(2, 1fr); }
@@ -210,12 +181,12 @@ st.markdown("""
 st.markdown(f"""
 <div class="report-header">
     <div>
-        <h1>📊 Báo Cáo Phân Tích Dữ Liệu Nội Bộ</h1>
+        <h1>Báo Cáo Dữ Liệu Nội Bộ</h1>
         <div class="subtitle">Hệ thống khuyến nghị sản phẩm &amp; phân tích doanh thu</div>
     </div>
-    <div class="header-right">
-        <span class="badge">🔵 SVD + SHAP</span>
-        <span class="badge">📅 {datetime.now().strftime('%d/%m/%Y')}</span>
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span class="badge">SVD + SHAP</span>
+        <span class="badge">{datetime.now().strftime('%d/%m/%Y')}</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -251,7 +222,7 @@ def load_data():
         df['year_month'] = df['year'].astype(str) + '-' + df['month'].astype(str).str.zfill(2)
         return df
     except Exception as e:
-        st.error(f"⚠️ Lỗi tải dữ liệu: {e}")
+        st.error(f"Lỗi tải dữ liệu: {e}")
         return pd.DataFrame()
 
 df_raw = load_data()
@@ -261,40 +232,35 @@ if df_raw.empty:
 # ===================== FILTERS =====================
 with st.container():
     st.markdown('<div class="filter-row">', unsafe_allow_html=True)
-    cols = st.columns([1, 1, 1, 1, 1.2, 0.8])
+    cols = st.columns([1, 1, 1, 1, 1.5])
     
     with cols[0]:
         categories = ["Tất cả"] + list(df_raw["category"].dropna().unique())
-        selected_category = st.selectbox("📂 Danh mục", categories, key="cat")
+        selected_category = st.selectbox("Danh mục", categories)
     
     with cols[1]:
         years = ["Tất cả"] + sorted(df_raw["year"].dropna().unique(), reverse=True)
-        selected_year = st.selectbox("📅 Năm", years, key="year")
+        selected_year = st.selectbox("Năm", years)
     
     with cols[2]:
         months = ["Tất cả"] + sorted(df_raw["month"].dropna().unique())
-        selected_month = st.selectbox("📆 Tháng", months, key="month")
+        selected_month = st.selectbox("Tháng", months)
     
     with cols[3]:
         genders = ["Tất cả"] + list(df_raw["gender"].dropna().unique())
-        selected_gender = st.selectbox("👤 Giới tính", genders, key="gender")
+        selected_gender = st.selectbox("Giới tính", genders)
     
     with cols[4]:
         min_price = float(df_raw['min_price'].min())
         max_price = float(df_raw['max_price'].max())
         price_range = st.slider(
-            "💰 Khoảng giá",
+            "Khoảng giá",
             min_value=min_price,
             max_value=max_price,
             value=(min_price, max_price),
             step=5000.0,
             format="%d"
         )
-    
-    with cols[5]:
-        st.markdown("<div style='margin-top: 24px;'>", unsafe_allow_html=True)
-        show_all = st.button("🔄 Làm mới", use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 # Apply filters
@@ -333,140 +299,86 @@ st.markdown(f"""
 <div class="metric-grid">
     <div class="metric-card">
         <div class="metric-value">{total_rev:,.0f}</div>
-        <div class="metric-label">Doanh Thu</div>
+        <div class="metric-label">Doanh thu</div>
         <div class="metric-trend {'trend-up' if mom_growth > 0 else 'trend-down'}">
             {'↑' if mom_growth > 0 else '↓'} {abs(mom_growth):.1f}% MoM
         </div>
     </div>
     <div class="metric-card">
         <div class="metric-value">{total_qty:,.0f}</div>
-        <div class="metric-label">Số Lượng</div>
+        <div class="metric-label">Số lượng</div>
     </div>
     <div class="metric-card">
         <div class="metric-value">{total_ord:,.0f}</div>
-        <div class="metric-label">Đơn Hàng</div>
+        <div class="metric-label">Đơn hàng</div>
     </div>
     <div class="metric-card">
         <div class="metric-value">{avg_rev:,.0f}</div>
-        <div class="metric-label">Doanh Thu TB</div>
+        <div class="metric-label">Doanh thu TB</div>
     </div>
     <div class="metric-card">
         <div class="metric-value">{avg_order_value:,.0f}</div>
-        <div class="metric-label">Giá Trị Đơn TB</div>
+        <div class="metric-label">Giá trị đơn TB</div>
     </div>
     <div class="metric-card">
         <div class="metric-value">{unique_customers:,}</div>
-        <div class="metric-label">Khách Hàng</div>
+        <div class="metric-label">Khách hàng</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
 # ===================== TABS =====================
 tab_overview, tab_prediction, tab_customer, tab_ai = st.tabs([
-    "📈 Tổng Quan", 
-    "🎯 Dự Đoán & SHAP", 
-    "👥 Khách Hàng", 
-    "🤖 Trợ Lý AI"
+    "Tổng quan", 
+    "Dự đoán & SHAP", 
+    "Khách hàng", 
+    "Trợ lý AI"
 ])
 
 # ===================== TAB 1: OVERVIEW =====================
 with tab_overview:
-    col1, col2 = st.columns(2, gap="medium")
+    col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown('<div class="section-title"><span class="icon">📊</span> Doanh Thu Theo Thời Gian</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Doanh thu theo thời gian</div>', unsafe_allow_html=True)
         df_line = df_filtered.groupby("year_month")["revenue"].sum().reset_index().sort_values("year_month")
         if not df_line.empty:
-            fig_line = px.line(df_line, x="year_month", y="revenue", markers=True, 
-                              color_discrete_sequence=["#3b82f6"], line_shape="spline")
-            fig_line.update_layout(
-                height=260, margin=dict(l=40, r=20, t=20, b=30),
-                xaxis_title=None, yaxis_title="Doanh thu",
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-            )
-            fig_line.update_xaxis(showgrid=False)
-            fig_line.update_yaxis(gridcolor='#f1f5f9')
+            fig_line = px.line(df_line, x="year_month", y="revenue", markers=True)
+            fig_line.update_layout(height=280, margin=dict(l=40, r=20, t=20, b=30), xaxis_title=None, yaxis_title="Doanh thu")
             st.plotly_chart(fig_line, use_container_width=True)
-        else:
-            st.info("Không có dữ liệu")
     
     with col2:
-        st.markdown('<div class="section-title"><span class="icon">📊</span> Doanh Thu Theo Danh Mục</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Doanh thu theo danh mục</div>', unsafe_allow_html=True)
         df_cat = df_filtered.groupby("category")["revenue"].sum().reset_index().sort_values("revenue", ascending=False)
         if not df_cat.empty:
             fig_cat = px.bar(df_cat, x="category", y="revenue", color="category")
-            fig_cat.update_layout(
-                height=260, margin=dict(l=40, r=20, t=20, b=30),
-                xaxis_title=None, yaxis_title="Doanh thu",
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                showlegend=False
-            )
-            fig_cat.update_xaxis(showgrid=False)
-            fig_cat.update_yaxis(gridcolor='#f1f5f9')
+            fig_cat.update_layout(height=280, margin=dict(l=40, r=20, t=20, b=30), xaxis_title=None, yaxis_title="Doanh thu", showlegend=False)
             st.plotly_chart(fig_cat, use_container_width=True)
-        else:
-            st.info("Không có dữ liệu")
     
-    col1, col2 = st.columns(2, gap="medium")
+    col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown('<div class="section-title"><span class="icon">🏆</span> Top 10 Sản Phẩm</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Top 10 sản phẩm</div>', unsafe_allow_html=True)
         df_top = df_filtered.groupby("product_name")["revenue"].sum().reset_index().sort_values("revenue", ascending=False).head(10)
         if not df_top.empty:
-            fig_top = px.bar(df_top, x="revenue", y="product_name", orientation="h",
-                            color="revenue", color_continuous_scale="Blues")
-            fig_top.update_layout(
-                height=280, margin=dict(l=20, r=20, t=10, b=20),
-                xaxis_title="Doanh thu", yaxis_title=None,
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                coloraxis_showscale=False
-            )
-            fig_top.update_xaxis(gridcolor='#f1f5f9')
-            fig_top.update_yaxis(gridcolor='#f1f5f9')
+            fig_top = px.bar(df_top, x="revenue", y="product_name", orientation="h", color="revenue")
+            fig_top.update_layout(height=300, margin=dict(l=20, r=20, t=10, b=20), xaxis_title="Doanh thu", yaxis_title=None, coloraxis_showscale=False)
             st.plotly_chart(fig_top, use_container_width=True)
-        else:
-            st.info("Không có dữ liệu")
     
     with col2:
-        st.markdown('<div class="section-title"><span class="icon">📍</span> Doanh Thu Theo Khu Vực</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Doanh thu theo khu vực</div>', unsafe_allow_html=True)
         df_state = df_filtered.groupby("state")["revenue"].sum().reset_index().sort_values("revenue", ascending=False).head(10)
         if not df_state.empty:
-            fig_state = px.bar(df_state, x="state", y="revenue", color="revenue",
-                              color_continuous_scale="Oranges")
-            fig_state.update_layout(
-                height=280, margin=dict(l=40, r=20, t=10, b=30),
-                xaxis_title=None, yaxis_title="Doanh thu",
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                coloraxis_showscale=False
-            )
-            fig_state.update_xaxis(showgrid=False, tickangle=15)
-            fig_state.update_yaxis(gridcolor='#f1f5f9')
+            fig_state = px.bar(df_state, x="state", y="revenue", color="revenue")
+            fig_state.update_layout(height=300, margin=dict(l=40, r=20, t=10, b=30), xaxis_title=None, yaxis_title="Doanh thu", coloraxis_showscale=False)
             st.plotly_chart(fig_state, use_container_width=True)
-        else:
-            st.info("Không có dữ liệu")
     
-    # Data table expander
-    with st.expander("📋 Xem Dữ Liệu Chi Tiết", expanded=False):
-        if not df_filtered.empty:
-            st.dataframe(
-                df_filtered,
-                use_container_width=True,
-                height=280,
-                column_config={
-                    "revenue": st.column_config.NumberColumn("Doanh Thu", format="%d"),
-                    "quantity": st.column_config.NumberColumn("Số Lượng"),
-                    "orders": st.column_config.NumberColumn("Đơn Hàng"),
-                    "loyalty_points": st.column_config.NumberColumn("Điểm TL"),
-                }
-            )
+    with st.expander("Xem dữ liệu chi tiết", expanded=False):
+        st.dataframe(df_filtered, use_container_width=True, height=250)
 
 # ===================== TAB 2: PREDICTION & SHAP =====================
 with tab_prediction:
-    st.markdown('<div class="section-title"><span class="icon">🎯</span> Dự Đoán & Giải Thích Mô Hình (SHAP)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Dự đoán & Giải thích mô hình (SHAP)</div>', unsafe_allow_html=True)
     
     # Try to load SHAP model
     try:
@@ -475,20 +387,19 @@ with tab_prediction:
         shap_available = True
     except:
         shap_available = False
-        st.warning("⚠️ Chưa tìm thấy mô hình SHAP. Vui lòng chạy notebook huấn luyện để tạo file 'shap_surrogate_model.pkl'")
+        st.warning("Chưa tìm thấy mô hình SHAP. Vui lòng chạy notebook huấn luyện.")
     
-    col1, col2 = st.columns([2, 1], gap="medium")
+    col1, col2 = st.columns([2, 1])
     
     with col1:
         st.markdown('<div class="chart-box">', unsafe_allow_html=True)
-        st.markdown('<div class="chart-label">📊 Đóng góp của các đặc trưng (SHAP Summary)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-label">Đóng góp của các đặc trưng (SHAP Summary)</div>', unsafe_allow_html=True)
         
         if shap_available:
             try:
                 import shap
                 import matplotlib.pyplot as plt
                 
-                # Load data for SHAP
                 conn = duckdb.connect()
                 interactions = conn.execute("""
                     SELECT customer_id, product_id, SUM(Total_quantity) AS total_qty
@@ -530,15 +441,15 @@ with tab_prediction:
                 st.session_state['X'] = X
                 
             except Exception as e:
-                st.error(f"Lỗi khi tính SHAP: {e}")
+                st.error(f"Lỗi: {e}")
         else:
-            st.info("💡 Mô hình SHAP chưa được huấn luyện.")
+            st.info("Mô hình SHAP chưa được huấn luyện.")
         
         st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
         st.markdown('<div class="chart-box">', unsafe_allow_html=True)
-        st.markdown('<div class="chart-label">📈 Đặc trưng ảnh hưởng nhất</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-label">Đặc trưng ảnh hưởng nhất</div>', unsafe_allow_html=True)
         
         if shap_available and 'shap_values' in st.session_state:
             try:
@@ -548,74 +459,20 @@ with tab_prediction:
                 }).sort_values('importance', ascending=False).head(8)
                 
                 fig = px.bar(shap_importance, x='importance', y='feature', orientation='h',
-                            color='importance', color_continuous_scale='RdYlBu_r',
-                            text_auto='.3f')
-                fig.update_layout(
-                    height=340, margin=dict(l=10, r=10, t=10, b=10),
-                    xaxis_title="SHAP Value", yaxis_title=None,
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    coloraxis_showscale=False
-                )
-                fig.update_xaxis(gridcolor='#f1f5f9')
+                            color='importance', text_auto='.3f')
+                fig.update_layout(height=340, margin=dict(l=10, r=10, t=10, b=10),
+                                 xaxis_title="SHAP Value", yaxis_title=None,
+                                 coloraxis_showscale=False)
                 st.plotly_chart(fig, use_container_width=True)
-            except Exception as e:
-                st.info(f"Đang tải dữ liệu...")
+            except:
+                st.info("Đang tải...")
         else:
             st.info("Chưa có dữ liệu SHAP")
         
         st.markdown('</div>', unsafe_allow_html=True)
     
-    # SHAP Waterfall
-    if shap_available and 'shap_values' in st.session_state:
-        st.markdown('<div class="section-title" style="margin-top:1rem;"><span class="icon">💡</span> Giải thích dự đoán cho khách hàng mẫu</div>', unsafe_allow_html=True)
-        
-        try:
-            sample_idx = 0
-            sample_shap = st.session_state['shap_values'][sample_idx]
-            
-            feature_names = st.session_state['X'].columns
-            shap_df = pd.DataFrame({
-                'feature': feature_names,
-                'shap_value': sample_shap
-            })
-            shap_df = shap_df.sort_values('shap_value', key=abs, ascending=False)
-            shap_df = shap_df.head(8)
-            
-            colors = ['#22c55e' if x > 0 else '#ef4444' for x in shap_df['shap_value']]
-            fig_waterfall = px.bar(
-                shap_df, 
-                x='shap_value', 
-                y='feature',
-                orientation='h',
-                color='shap_value',
-                color_continuous_scale=['#ef4444', '#fbbf24', '#22c55e'],
-                title="Đóng góp của từng đặc trưng vào dự đoán"
-            )
-            fig_waterfall.update_layout(
-                height=300,
-                margin=dict(l=20, r=20, t=40, b=20),
-                xaxis_title="SHAP Value (ảnh hưởng đến dự đoán)",
-                yaxis_title=None,
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                coloraxis_showscale=False
-            )
-            fig_waterfall.update_xaxis(gridcolor='#f1f5f9')
-            st.plotly_chart(fig_waterfall, use_container_width=True)
-            
-            st.markdown("""
-            <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; font-size: 13px; color: #0f1724; border-left: 3px solid #3b82f6;">
-                <b>📌 Giải thích:</b> Các thanh màu xanh <span style="color:#22c55e;">⬆️</span> làm tăng khả năng được gợi ý, 
-                màu đỏ <span style="color:#ef4444;">⬇️</span> làm giảm khả năng được gợi ý.
-            </div>
-            """, unsafe_allow_html=True)
-            
-        except Exception as e:
-            st.warning(f"Không thể hiển thị waterfall: {e}")
-    
     # Model performance
-    st.markdown('<div class="section-title" style="margin-top:1rem;"><span class="icon">📊</span> Hiệu Suất Mô Hình</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Hiệu suất mô hình</div>', unsafe_allow_html=True)
     
     try:
         eval_log = pd.DataFrame({
@@ -624,57 +481,35 @@ with tab_prediction:
             'Recall@K': [0.1847, 0.5742, 0.8638, 0.9808]
         })
         
-        col1, col2 = st.columns(2, gap="medium")
+        col1, col2 = st.columns(2)
         
         with col1:
             fig_eval = px.line(eval_log, x='K', y=['Precision@K', 'Recall@K'],
-                              markers=True, labels={'value': 'Score', 'variable': 'Metric'},
-                              color_discrete_map={'Precision@K': '#3b82f6', 'Recall@K': '#22c55e'})
-            fig_eval.update_layout(
-                height=220, margin=dict(l=40, r=20, t=20, b=30),
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5)
-            )
-            fig_eval.update_xaxis(gridcolor='#f1f5f9')
-            fig_eval.update_yaxis(gridcolor='#f1f5f9', range=[0, 1.1])
+                              markers=True, labels={'value': 'Score', 'variable': 'Metric'})
+            fig_eval.update_layout(height=220, margin=dict(l=40, r=20, t=20, b=30),
+                                  legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5))
+            fig_eval.update_yaxis(range=[0, 1.1])
             st.plotly_chart(fig_eval, use_container_width=True)
         
         with col2:
-            st.dataframe(eval_log, use_container_width=True, hide_index=True,
-                        column_config={
-                            'K': 'K',
-                            'Precision@K': st.column_config.NumberColumn('Precision@K', format='%.4f'),
-                            'Recall@K': st.column_config.NumberColumn('Recall@K', format='%.4f')
-                        })
-    except Exception as e:
-        st.info("Chưa có dữ liệu đánh giá mô hình")
+            st.dataframe(eval_log, use_container_width=True, hide_index=True)
+    except:
+        st.info("Chưa có dữ liệu đánh giá")
 
 # ===================== TAB 3: CUSTOMER =====================
 with tab_customer:
-    st.markdown('<div class="section-title"><span class="icon">👥</span> Phân Tích Khách Hàng</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Phân tích khách hàng</div>', unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2, gap="medium")
+    col1, col2 = st.columns(2)
     
     with col1:
         st.markdown('<div class="chart-box">', unsafe_allow_html=True)
         st.markdown('<div class="chart-label">Doanh thu theo giới tính</div>', unsafe_allow_html=True)
-        df_gender = df_filtered.groupby("gender").agg({"revenue": "sum"}).reset_index()
+        df_gender = df_filtered.groupby("gender")["revenue"].sum().reset_index()
         if not df_gender.empty:
-            fig_gender = px.bar(df_gender, x="gender", y="revenue", color="gender",
-                               color_discrete_sequence=["#3b82f6", "#ec4899"])
-            fig_gender.update_layout(
-                height=260, margin=dict(l=40, r=20, t=20, b=30),
-                xaxis_title=None, yaxis_title="Doanh thu",
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                showlegend=False
-            )
-            fig_gender.update_xaxis(showgrid=False)
-            fig_gender.update_yaxis(gridcolor='#f1f5f9')
+            fig_gender = px.bar(df_gender, x="gender", y="revenue", color="gender")
+            fig_gender.update_layout(height=250, margin=dict(l=40, r=20, t=20, b=30), xaxis_title=None, yaxis_title="Doanh thu", showlegend=False)
             st.plotly_chart(fig_gender, use_container_width=True)
-        else:
-            st.info("Không có dữ liệu")
         st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
@@ -682,53 +517,25 @@ with tab_customer:
         st.markdown('<div class="chart-label">Top 10 khách hàng - Điểm tích lũy</div>', unsafe_allow_html=True)
         df_loyalty = df_filtered.groupby("customer_name")["loyalty_points"].sum().reset_index().sort_values("loyalty_points", ascending=False).head(10)
         if not df_loyalty.empty:
-            fig_loyalty = px.bar(df_loyalty, x="loyalty_points", y="customer_name", orientation="h",
-                                color="loyalty_points", color_continuous_scale="Oranges")
-            fig_loyalty.update_layout(
-                height=260, margin=dict(l=20, r=20, t=20, b=20),
-                xaxis_title="Điểm tích lũy", yaxis_title=None,
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                coloraxis_showscale=False
-            )
-            fig_loyalty.update_xaxis(gridcolor='#f1f5f9')
-            fig_loyalty.update_yaxis(gridcolor='#f1f5f9')
+            fig_loyalty = px.bar(df_loyalty, x="loyalty_points", y="customer_name", orientation="h", color="loyalty_points")
+            fig_loyalty.update_layout(height=250, margin=dict(l=20, r=20, t=20, b=20), xaxis_title="Điểm tích lũy", yaxis_title=None, coloraxis_showscale=False)
             st.plotly_chart(fig_loyalty, use_container_width=True)
-        else:
-            st.info("Không có dữ liệu")
         st.markdown('</div>', unsafe_allow_html=True)
     
-    st.markdown("---")
-    
-    col1, col2 = st.columns(2, gap="medium")
+    col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown('<div class="section-title"><span class="icon">⭐</span> Khách Hàng VIP</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Khách hàng VIP</div>', unsafe_allow_html=True)
         df_customer = df_filtered.groupby("customer_name").agg({
             "revenue": "sum", "orders": "sum", "loyalty_points": "sum"
         }).reset_index()
         if not df_customer.empty:
             df_customer["avg_order_value"] = df_customer["revenue"] / df_customer["orders"]
             df_customer = df_customer.sort_values("revenue", ascending=False).head(10)
-            
-            st.dataframe(
-                df_customer,
-                use_container_width=True,
-                height=280,
-                hide_index=True,
-                column_config={
-                    "customer_name": "Tên KH",
-                    "revenue": st.column_config.NumberColumn("Doanh Thu", format="%d"),
-                    "orders": "Đơn Hàng",
-                    "loyalty_points": "Điểm TL",
-                    "avg_order_value": st.column_config.NumberColumn("Giá Trị TB", format="%d")
-                }
-            )
-        else:
-            st.info("Không có dữ liệu")
+            st.dataframe(df_customer, use_container_width=True, height=250, hide_index=True)
     
     with col2:
-        st.markdown('<div class="section-title"><span class="icon">📊</span> ABC - Phân tích Pareto</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">ABC - Phân tích Pareto</div>', unsafe_allow_html=True)
         df_abc = df_filtered.groupby("product_name")["revenue"].sum().reset_index().sort_values("revenue", ascending=False)
         if not df_abc.empty:
             df_abc["cumulative_pct"] = df_abc["revenue"].cumsum() / df_abc["revenue"].sum() * 100
@@ -736,74 +543,49 @@ with tab_customer:
             df_abc.loc[df_abc["cumulative_pct"] <= 80, "category"] = "A"
             df_abc.loc[(df_abc["cumulative_pct"] > 80) & (df_abc["cumulative_pct"] <= 95), "category"] = "B"
             
-            abc_stats = df_abc.groupby("category").agg({
-                "product_name": "count",
-                "revenue": "sum"
-            }).reset_index()
-            abc_stats.columns = ["Hạng", "Số SP", "Doanh Thu"]
-            abc_stats["% Doanh Thu"] = (abc_stats["Doanh Thu"] / abc_stats["Doanh Thu"].sum() * 100).round(1)
+            abc_stats = df_abc.groupby("category").agg({"product_name": "count", "revenue": "sum"}).reset_index()
+            abc_stats.columns = ["Hạng", "Số SP", "Doanh thu"]
+            abc_stats["% Doanh thu"] = (abc_stats["Doanh thu"] / abc_stats["Doanh thu"].sum() * 100).round(1)
             
             st.dataframe(abc_stats, use_container_width=True, hide_index=True)
             
-            fig_abc_pie = px.pie(abc_stats, values="Doanh Thu", names="Hạng",
+            fig_abc_pie = px.pie(abc_stats, values="Doanh thu", names="Hạng",
                                 color_discrete_map={"A": "#22c55e", "B": "#fbbf24", "C": "#ef4444"})
-            fig_abc_pie.update_layout(height=200, margin=dict(l=20, r=20, t=10, b=10), showlegend=True)
+            fig_abc_pie.update_layout(height=180, margin=dict(l=20, r=20, t=10, b=10))
             st.plotly_chart(fig_abc_pie, use_container_width=True)
-        else:
-            st.info("Không có dữ liệu")
 
 # ===================== TAB 4: AI ASSISTANT =====================
 with tab_ai:
-    st.markdown('<div class="section-title"><span class="icon">🤖</span> Trợ Lý AI - Phân Tích Thông Minh</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Trợ lý AI - Phân tích thông minh</div>', unsafe_allow_html=True)
     
     GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", "")
     
     if not GROQ_API_KEY:
-        st.warning("⚠️ Vui lòng cấu hình GROQ_API_KEY trong secrets để sử dụng Trợ lý AI.")
+        st.warning("Vui lòng cấu hình GROQ_API_KEY để sử dụng Trợ lý AI.")
     else:
         analysis_type = st.selectbox(
             "Chọn loại phân tích",
-            ["📊 Tổng quan doanh thu", "🏆 Phân tích sản phẩm", "👥 Phân tích khách hàng", "📍 Phân tích khu vực", "💡 Đề xuất chiến lược"],
-            key="ai_type"
+            ["Tổng quan doanh thu", "Phân tích sản phẩm", "Phân tích khách hàng", "Phân tích khu vực", "Đề xuất chiến lược"]
         )
         
-        if st.button("🚀 Phân tích ngay", use_container_width=True, type="primary"):
-            with st.spinner("🔄 AI đang phân tích dữ liệu..."):
+        if st.button("Phân tích", use_container_width=True, type="primary"):
+            with st.spinner("AI đang phân tích..."):
                 try:
-                    # Prepare data summary
-                    if analysis_type == "📊 Tổng quan doanh thu":
-                        data = df_filtered.groupby("product_name").agg({
-                            "revenue": "sum", 
-                            "quantity": "sum", 
-                            "orders": "sum"
-                        }).reset_index().sort_values("revenue", ascending=False).head(10)
+                    if analysis_type == "Tổng quan doanh thu":
+                        data = df_filtered.groupby("product_name").agg({"revenue": "sum", "quantity": "sum", "orders": "sum"}).reset_index().sort_values("revenue", ascending=False).head(10)
                         prompt_instruction = "Dữ liệu top 10 sản phẩm về doanh thu, số lượng và đơn hàng."
-                    elif analysis_type == "🏆 Phân tích sản phẩm":
-                        data = df_filtered.groupby(["category", "product_name"]).agg({
-                            "revenue": "sum", 
-                            "quantity": "sum"
-                        }).reset_index().sort_values("revenue", ascending=False).head(10)
+                    elif analysis_type == "Phân tích sản phẩm":
+                        data = df_filtered.groupby(["category", "product_name"]).agg({"revenue": "sum", "quantity": "sum"}).reset_index().sort_values("revenue", ascending=False).head(10)
                         prompt_instruction = "Dữ liệu top 10 sản phẩm theo danh mục."
-                    elif analysis_type == "👥 Phân tích khách hàng":
-                        data = df_filtered.groupby(["customer_name", "gender"]).agg({
-                            "revenue": "sum",
-                            "orders": "sum",
-                            "loyalty_points": "sum"
-                        }).reset_index().sort_values("revenue", ascending=False).head(10)
+                    elif analysis_type == "Phân tích khách hàng":
+                        data = df_filtered.groupby(["customer_name", "gender"]).agg({"revenue": "sum", "orders": "sum", "loyalty_points": "sum"}).reset_index().sort_values("revenue", ascending=False).head(10)
                         prompt_instruction = "Dữ liệu top 10 khách hàng."
-                    elif analysis_type == "📍 Phân tích khu vực":
-                        data = df_filtered.groupby(["state", "city"]).agg({
-                            "revenue": "sum",
-                            "quantity": "sum",
-                            "orders": "sum"
-                        }).reset_index().sort_values("revenue", ascending=False).head(10)
+                    elif analysis_type == "Phân tích khu vực":
+                        data = df_filtered.groupby(["state", "city"]).agg({"revenue": "sum", "quantity": "sum", "orders": "sum"}).reset_index().sort_values("revenue", ascending=False).head(10)
                         prompt_instruction = "Dữ liệu top 10 khu vực."
                     else:
-                        data = df_filtered.groupby("product_name").agg({
-                            "revenue": "sum", 
-                            "quantity": "sum"
-                        }).reset_index().sort_values("revenue", ascending=False).head(10)
-                        prompt_instruction = "Dữ liệu top 10 sản phẩm về doanh thu và số lượng. Hãy đề xuất chiến lược kinh doanh."
+                        data = df_filtered.groupby("product_name").agg({"revenue": "sum", "quantity": "sum"}).reset_index().sort_values("revenue", ascending=False).head(10)
+                        prompt_instruction = "Dữ liệu top 10 sản phẩm. Hãy đề xuất chiến lược kinh doanh."
                     
                     total_revenue = df_filtered["revenue"].sum()
                     total_orders = df_filtered["orders"].sum()
@@ -838,15 +620,15 @@ with tab_ai:
                         max_tokens=1024
                     )
                     
-                    st.success("✅ Phân tích hoàn tất!")
+                    st.success("Phân tích hoàn tất!")
                     st.markdown(chat_completion.choices[0].message.content)
                     
                 except Exception as e:
-                    st.error(f"❌ Lỗi: {e}")
+                    st.error(f"Lỗi: {e}")
 
 # ===================== FOOTER =====================
 st.markdown(f"""
 <div class="report-footer">
-    Báo Cáo Phân Tích Dữ Liệu Nội Bộ | Cập nhật: {datetime.now().strftime('%d/%m/%Y %H:%M')}
+    Báo cáo phân tích dữ liệu nội bộ | Cập nhật: {datetime.now().strftime('%d/%m/%Y %H:%M')}
 </div>
 """, unsafe_allow_html=True)
