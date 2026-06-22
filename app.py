@@ -41,7 +41,7 @@ st.markdown("""
         color: #60a5fa;
         padding: 3px 12px;
         border-radius: 16px;
-        font-size: 11px;
+        font-size: 18px;
         border: 1px solid rgba(59,130,246,0.3);
     }
 
@@ -60,13 +60,13 @@ st.markdown("""
         text-align: center;
     }
     .metric-value { font-size: 20px; font-weight: 700; color: #0f1724; line-height: 1.2; }
-    .metric-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
-    .metric-trend { font-size: 10px; margin-top: 2px; }
+    .metric-label { font-size: 15px; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
+    .metric-trend { font-size: 15px; margin-top: 2px; }
     .trend-up { color: #22c55e; }
     .trend-down { color: #ef4444; }
 
     .section-title {
-        font-size: 14px;
+        font-size: 16px;
         font-weight: 600;
         color: #0f1724;
         margin-bottom: 0.6rem;
@@ -85,7 +85,7 @@ st.markdown("""
     .stTabs [data-baseweb="tab"] {
         padding: 5px 16px;
         border-radius: 6px;
-        font-size: 12px;
+        font-size: 18px;
         font-weight: 500;
         color: #64748b;
     }
@@ -119,7 +119,7 @@ st.markdown("""
         color: #0f1724;
     }
     .recommendation-card .product-score {
-        font-size: 13px;
+        font-size: 16px;
         color: #64748b;
     }
 
@@ -138,7 +138,7 @@ st.markdown("""
     .report-footer {
         text-align: center;
         color: #94a3b8;
-        font-size: 10px;
+        font-size: 15px;
         padding: 0.8rem 0;
         border-top: 1px solid #e5e9f0;
         margin-top: 1rem;
