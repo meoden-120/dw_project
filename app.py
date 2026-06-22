@@ -34,8 +34,8 @@ st.markdown("""
         align-items: center;
         flex-wrap: wrap;
     }
-    .report-header h1 { color: #ffffff; font-size: 18px; font-weight: 600; margin: 0; }
-    .report-header .subtitle { color: #94a3b8; font-size: 12px; }
+    .report-header h1 { color: #ffffff; font-size: 24px; font-weight: 600; margin: 0; }
+    .report-header .subtitle { color: #94a3b8; font-size: 15px; }
     .report-header .badge {
         background: rgba(59,130,246,0.2);
         color: #60a5fa;
@@ -70,20 +70,20 @@ st.markdown("""
         text-align: center;
     }
     .metric-value { 
-        font-size: 22px; 
+        font-size: 24px; 
         font-weight: 700; 
         color: #0f1724; 
         line-height: 1.3; 
     }
     .metric-label { 
-        font-size: 11px; 
+        font-size: 15px; 
         color: #64748b; 
         text-transform: uppercase; 
         letter-spacing: 0.3px; 
         margin-top: 4px; 
     }
     .metric-trend { 
-        font-size: 11px; 
+        font-size: 14px; 
         margin-top: 4px; 
     }
     .trend-up { color: #22c55e; }
