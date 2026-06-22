@@ -735,74 +735,47 @@ with tab_recommend:
 
                 recommendations = get_recommendations(selected_customer, k=3)
 
-# Trong tab_recommend, phần hiển thị gợi ý
-if recommendations:
-    for idx, rec in enumerate(recommendations, 1):
-        product_id = rec['product_id']
-        score = rec['score']
-        
-        product_info = df[df['product_id'] == product_id]
-        product_name = product_info['product_name'].iloc[0] if not product_info.empty else product_id
-        category = product_info['category'].iloc[0] if not product_info.empty else "N/A"
-        
-        st.markdown(f"""
-        <div class="recommendation-card">
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span class="rank">#{idx}</span>
-                <div>
-                    <div class="product-name">{product_name}</div>
-                    <div class="product-score">📂 {category} | Điểm tin cậy: {score:.3f}</div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # ===== DEBUG: Kiểm tra giải thích =====
-        st.write(f"🔄 Đang kiểm tra giải thích cho sản phẩm #{idx}...")
-        
-        try:
-            explanation = explain_recommendation(selected_customer, product_id)
-            
-            # Hiển thị trạng thái
-            if explanation is None:
-                st.warning(f"⚠️ Không có giải thích cho sản phẩm #{idx}")
-                # Hiển thị thông tin debug
-                with st.expander(f"🔍 Debug #{idx} - Tại sao không có giải thích?"):
-                    st.write("**Thông tin debug:**")
-                    st.write(f"- Customer ID: {selected_customer}")
-                    st.write(f"- Product ID: {product_id}")
-                    st.write(f"- Surrogate model: {'✅ Có' if surrogate_model is not None else '❌ Không'}")
-                    st.write(f"- SVD model: {'✅ Có' if svd_model is not None else '❌ Không'}")
-                    
-                    # Kiểm tra dữ liệu khách hàng
-                    customer_data = df_raw[df_raw['customer_id'] == selected_customer]
-                    st.write(f"- Dữ liệu khách hàng: {len(customer_data)} records")
-                    if not customer_data.empty:
-                        st.write(f"- Gender: {customer_data['gender'].mode().iloc[0] if not customer_data['gender'].mode().empty else 'N/A'}")
-                        st.write(f"- Tổng doanh thu: {customer_data['revenue'].sum():,.0f}")
-                        st.write(f"- Số đơn hàng: {customer_data['orders'].sum()}")
-            else:
-                st.success(f"✅ Có giải thích cho sản phẩm #{idx}")
-                # Hiển thị giải thích
-                with st.expander(f"💡 Giải thích tại sao gợi ý #{idx} này?"):
-                    st.markdown(f"""
-                    <div class="shap-card">
-                        <div><span class="feature">👤 Khách hàng:</span> {customer_name}</div>
-                        <div><span class="feature">📊 Điểm tích lũy:</span> {explanation['explanation']['loyalty_score']:.0f}</div>
-                        <div><span class="feature">🛒 Đã mua:</span> {explanation['explanation']['purchase_history']:.0f} sản phẩm</div>
-                        <div><span class="feature">💰 Tổng chi tiêu:</span> {explanation['explanation']['total_spent']:,.0f} VNĐ</div>
-                        <div style="margin-top:8px; padding-top:8px; border-top:1px solid #e5e9f0;">
-                            <span style="color:#64748b; font-size:13px;">📝 {explanation['interpretation']}</span>
+                if recommendations:
+                    for idx, rec in enumerate(recommendations, 1):
+                        product_id = rec['product_id']
+                        score = rec['score']
+
+                        # Tìm tên sản phẩm
+                        product_info = df[df['product_id'] == product_id]
+                        product_name = product_info['product_name'].iloc[0] if not product_info.empty else product_id
+
+                        # Tìm category
+                        category = product_info['category'].iloc[0] if not product_info.empty else "N/A"
+
+                        st.markdown(f"""
+                        <div class="recommendation-card">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span class="rank">#{idx}</span>
+                                <div>
+                                    <div class="product-name">{product_name}</div>
+                                    <div class="product-score">📂 {category} | Điểm tin cậy: {score:.3f}</div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-        except Exception as e:
-            st.error(f"❌ Lỗi khi giải thích sản phẩm #{idx}: {e}")
-            import traceback
-            with st.expander(f"🔍 Chi tiết lỗi #{idx}"):
-                st.code(traceback.format_exc())
-else:
-    st.info("Không có gợi ý nào cho khách hàng này hoặc khách hàng đã mua tất cả sản phẩm.")
+                        """, unsafe_allow_html=True)
+
+                        # Giải thích SHAP (nếu có)
+                        explanation = explain_recommendation(selected_customer, product_id)
+                        if explanation:
+                            with st.expander(f"💡 Giải thích tại sao gợi ý #{idx} này?"):
+                                st.markdown(f"""
+                                <div class="shap-card">
+                                    <div><span class="feature">👤 Khách hàng:</span> {customer_name}</div>
+                                    <div><span class="feature">📊 Điểm tích lũy:</span> {explanation['explanation']['loyalty_score']:.0f}</div>
+                                    <div><span class="feature">🛒 Đã mua:</span> {explanation['explanation']['purchase_history']:.0f} sản phẩm</div>
+                                    <div><span class="feature">💰 Tổng chi tiêu:</span> {explanation['explanation']['total_spent']:,.0f} VNĐ</div>
+                                    <div style="margin-top:8px; padding-top:8px; border-top:1px solid #e5e9f0;">
+                                        <span style="color:#64748b; font-size:13px;">📝 {explanation['interpretation']}</span>
+                                    </div>
+                                </div>
+                                """, unsafe_allow_html=True)
+                else:
+                    st.info("Không có gợi ý nào cho khách hàng này hoặc khách hàng đã mua tất cả sản phẩm.")
 
         # Bảng khuyến nghị cho toàn bộ khách hàng (lấy từ warehouse nếu có)
         st.markdown('<div class="section-title" style="margin-top:20px;">📋 Bảng khuyến nghị tổng hợp</div>', unsafe_allow_html=True)
@@ -834,7 +807,6 @@ else:
                 st.info("Chưa có bảng khuyến nghị tổng hợp. Hãy chạy Giai đoạn 3 để tạo bảng.")
         except Exception as e:
             pass
-
 # ============================================================
 # TAB 4 — HIỆU SUẤT MÔ HÌNH SVD
 # ============================================================
