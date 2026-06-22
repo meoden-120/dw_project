@@ -372,7 +372,7 @@ with tab_prediction:
                 with open('shap_surrogate_model.pkl', 'rb') as f:
                     surrogate_model = pickle.load(f)
                 
-conn = duckdb.connect()
+                conn = duckdb.connect()
                 # SỬA: Thêm product_id vào mệnh đề SELECT
                 interactions = conn.execute("""
                     SELECT customer_id, product_id, SUM(TRY_CAST(Total_quantity AS DOUBLE)) AS total_qty
