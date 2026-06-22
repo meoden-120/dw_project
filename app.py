@@ -8,9 +8,8 @@ from datetime import datetime, timedelta
 import numpy as np
 import pickle
 import os
-import sys
-import subprocess
 
+# ===================== CẤU HÌNH TRANG (chỉ gọi 1 lần) =====================
 st.set_page_config(
     page_title="Báo Cáo Dữ Liệu Nội Bộ", 
     page_icon="📊",
@@ -18,35 +17,14 @@ st.set_page_config(
 )
 
 # ===================== KIỂM TRA THƯ VIỆN =====================
+# Cài trước bằng: pip install shap==0.42.1 matplotlib
 SHAP_AVAILABLE = False
 try:
     import shap
     import matplotlib.pyplot as plt
     SHAP_AVAILABLE = True
-    print("✅ SHAP đã sẵn sàng")
-except ImportError as e:
-    print(f"⚠️ SHAP chưa được cài đặt: {e}")
-
-# ===================== CÀI ĐẶT SHAP NẾU CHƯA CÓ =====================
-if not SHAP_AVAILABLE:
-    try:
-        st.info("⏳ Đang cài đặt SHAP...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "shap==0.42.1", "-q"])
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "matplotlib", "-q"])
-        
-        # Thử import lại
-        import shap
-        import matplotlib.pyplot as plt
-        SHAP_AVAILABLE = True
-        st.success("✅ Đã cài đặt SHAP thành công!")
-    except Exception as e:
-        st.error(f"❌ Không thể cài đặt SHAP: {e}")
-
-st.set_page_config(
-    page_title="Báo Cáo Dữ Liệu Nội Bộ", 
-    page_icon="📊",
-    layout="wide"
-)
+except ImportError:
+    pass
 
 # Custom CSS
 st.markdown("""
@@ -150,6 +128,16 @@ st.markdown("""
         margin-top: 1rem;
     }
     
+    .warning-box {
+        background: #fff7ed;
+        padding: 12px 16px;
+        border-radius: 6px;
+        border-left: 3px solid #f97316;
+        font-size: 13px;
+        color: #7c2d12;
+        margin: 8px 0;
+    }
+    
     .info-box {
         background: #f0f4ff;
         padding: 12px 16px;
@@ -183,8 +171,27 @@ st.markdown(f"""
 @st.cache_data
 def load_data():
     try:
-        conn = duckdb.connect()
-        query = """
+        # Ưu tiên đọc từ DuckDB warehouse nếu có
+        db_path = 'nkdl_warehouse.db'
+        csv_path = 'NKDL_Project.csv'
+
+        if os.path.exists(db_path):
+            conn = duckdb.connect(db_path, read_only=True)
+            # Lấy tên bảng đầu tiên trong DB
+            tables = conn.execute("SHOW TABLES").fetchdf()
+            table_name = tables.iloc[0, 0] if not tables.empty else None
+            if table_name is None:
+                st.error("Database không có bảng nào.")
+                return pd.DataFrame()
+            from_clause = table_name
+        elif os.path.exists(csv_path):
+            conn = duckdb.connect()
+            from_clause = f"'{csv_path}'"
+        else:
+            st.error("Không tìm thấy dữ liệu. Cần file nkdl_warehouse.db hoặc NKDL_Project.csv.")
+            return pd.DataFrame()
+
+        query = f"""
             SELECT 
                 product_name,
                 category,
@@ -202,11 +209,11 @@ def load_data():
                 TRY_CAST("Min_price" AS DOUBLE) as min_price,
                 TRY_CAST("Max_price" AS DOUBLE) as max_price,
                 gender, city, state, order_date
-            FROM 'NKDL_Project.csv'
+            FROM {from_clause}
         """
         df = conn.execute(query).df()
         conn.close()
-        df['order_date'] = pd.to_datetime(df['order_date'])
+        df['order_date'] = pd.to_datetime(df['order_date'], errors='coerce')
         df['year_month'] = df['year'].astype(str) + '-' + df['month'].astype(str).str.zfill(2)
         return df
     except Exception as e:
@@ -333,7 +340,7 @@ with tab_overview:
         if not df_line.empty:
             fig_line = px.line(df_line, x="year_month", y="revenue", markers=True)
             fig_line.update_layout(height=280, margin=dict(l=40, r=20, t=20, b=30), xaxis_title=None, yaxis_title="Doanh thu")
-            st.plotly_chart(fig_line, width='stretch')
+            st.plotly_chart(fig_line, use_container_width=True)
     
     with col2:
         st.markdown('<div class="section-title">Doanh thu theo danh mục</div>', unsafe_allow_html=True)
@@ -341,7 +348,7 @@ with tab_overview:
         if not df_cat.empty:
             fig_cat = px.bar(df_cat, x="category", y="revenue", color="category")
             fig_cat.update_layout(height=280, margin=dict(l=40, r=20, t=20, b=30), xaxis_title=None, yaxis_title="Doanh thu", showlegend=False)
-            st.plotly_chart(fig_cat, width='stretch')
+            st.plotly_chart(fig_cat, use_container_width=True)
     
     col1, col2 = st.columns(2)
     
@@ -351,7 +358,7 @@ with tab_overview:
         if not df_top.empty:
             fig_top = px.bar(df_top, x="revenue", y="product_name", orientation="h", color="revenue")
             fig_top.update_layout(height=300, margin=dict(l=20, r=20, t=10, b=20), xaxis_title="Doanh thu", yaxis_title=None, coloraxis_showscale=False)
-            st.plotly_chart(fig_top, width='stretch')
+            st.plotly_chart(fig_top, use_container_width=True)
     
     with col2:
         st.markdown('<div class="section-title">Doanh thu theo khu vực</div>', unsafe_allow_html=True)
@@ -359,26 +366,17 @@ with tab_overview:
         if not df_state.empty:
             fig_state = px.bar(df_state, x="state", y="revenue", color="revenue")
             fig_state.update_layout(height=300, margin=dict(l=40, r=20, t=10, b=30), xaxis_title=None, yaxis_title="Doanh thu", coloraxis_showscale=False)
-            st.plotly_chart(fig_state, width='stretch')
+            st.plotly_chart(fig_state, use_container_width=True)
     
     with st.expander("Xem dữ liệu chi tiết", expanded=False):
-        st.dataframe(df_filtered, width='stretch', height=250)
+        st.dataframe(df_filtered, use_container_width=True, height=250)
 
 # ===================== TAB 2: PREDICTION & SHAP =====================
 with tab_prediction:
     st.markdown('<div class="section-title">Dự đoán & Giải thích mô hình (SHAP)</div>', unsafe_allow_html=True)
     
     if not SHAP_AVAILABLE:
-        st.warning("⚠️ SHAP chưa được cài đặt. Đang thử cài đặt...")
-        # Thử cài đặt lại
-        try:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "shap==0.42.1", "-q"])
-            import shap
-            import matplotlib.pyplot as plt
-            SHAP_AVAILABLE = True
-            st.success("✅ Đã cài đặt SHAP thành công! Vui lòng refresh lại trang.")
-        except:
-            st.error("Không thể cài đặt SHAP. Vui lòng cài thủ công: pip install shap==0.42.1")
+        st.warning("⚠️ SHAP chưa được cài đặt. Vui lòng chạy: `pip install shap==0.42.1 matplotlib` rồi restart app.")
     
     # Kiểm tra file mô hình
     model_file = 'shap_surrogate_model.pkl'
@@ -410,33 +408,42 @@ with tab_prediction:
                     with open(model_file, 'rb') as f:
                         surrogate_model = pickle.load(f)
                     
-                    conn = duckdb.connect()
+                    db_path = 'nkdl_warehouse.db'
+                    csv_path = 'NKDL_Project.csv'
+                    if os.path.exists(db_path):
+                        conn = duckdb.connect(db_path, read_only=True)
+                        tables = conn.execute("SHOW TABLES").fetchdf()
+                        tbl = tables.iloc[0, 0]
+                        from_clause = tbl
+                    else:
+                        conn = duckdb.connect()
+                        from_clause = f"'{csv_path}'"
                     
                     # Lấy interactions
-                    interactions = conn.execute("""
+                    interactions = conn.execute(f"""
                         SELECT customer_id, product_id, SUM(TRY_CAST(Total_quantity AS DOUBLE)) AS total_qty
-                        FROM 'NKDL_Project.csv'
+                        FROM {from_clause}
                         WHERE product_id IS NOT NULL AND customer_id IS NOT NULL
                         GROUP BY customer_id, product_id
                     """).fetchdf()
                     
-                    # Lấy đặc trưng khách hàng
-                    dac_trung = conn.execute("""
+                    # Lấy đặc trưng khách hàng (bao gồm gender thực)
+                    dac_trung = conn.execute(f"""
                         SELECT 
                             customer_id,
+                            gender,
                             AVG(TRY_CAST(loyalty_points AS DOUBLE)) AS avg_loyalty_points,
                             SUM(TRY_CAST(Total_quantity AS DOUBLE)) AS tong_so_luong_da_mua,
                             SUM(COALESCE(TRY_CAST(Total_revenue AS DOUBLE), 0)) AS tong_doanh_thu,
                             COUNT(DISTINCT product_id) AS so_san_pham_khac_nhau,
                             SUM(TRY_CAST(Total_orders AS DOUBLE)) AS tong_so_don_hang
-                        FROM 'NKDL_Project.csv'
-                        GROUP BY customer_id
+                        FROM {from_clause}
+                        GROUP BY customer_id, gender
                     """).fetchdf()
                     conn.close()
                     
                     df_surrogate = interactions.merge(dac_trung, on='customer_id', how='left')
-                    df_surrogate['gender'] = 'M'
-                    df_surrogate = pd.get_dummies(df_surrogate, columns=['product_id'])
+                    df_surrogate = pd.get_dummies(df_surrogate, columns=['product_id', 'gender'])
                     df_surrogate = df_surrogate.fillna(0)
                     
                     cols_to_drop = ['customer_id', 'total_qty']
@@ -528,7 +535,7 @@ with tab_customer:
         if not df_gender.empty:
             fig_gender = px.bar(df_gender, x="gender", y="revenue", color="gender")
             fig_gender.update_layout(height=250, margin=dict(l=40, r=20, t=20, b=30), xaxis_title=None, yaxis_title="Doanh thu", showlegend=False)
-            st.plotly_chart(fig_gender, width='stretch')
+            st.plotly_chart(fig_gender, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
@@ -538,7 +545,7 @@ with tab_customer:
         if not df_loyalty.empty:
             fig_loyalty = px.bar(df_loyalty, x="loyalty_points", y="customer_name", orientation="h", color="loyalty_points")
             fig_loyalty.update_layout(height=250, margin=dict(l=20, r=20, t=20, b=20), xaxis_title="Điểm tích lũy", yaxis_title=None, coloraxis_showscale=False)
-            st.plotly_chart(fig_loyalty, width='stretch')
+            st.plotly_chart(fig_loyalty, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
@@ -551,7 +558,7 @@ with tab_customer:
         if not df_customer.empty:
             df_customer["avg_order_value"] = df_customer["revenue"] / df_customer["orders"]
             df_customer = df_customer.sort_values("revenue", ascending=False).head(10)
-            st.dataframe(df_customer, width='stretch', height=250, hide_index=True)
+            st.dataframe(df_customer, use_container_width=True, height=250, hide_index=True)
     
     with col2:
         st.markdown('<div class="section-title">ABC - Phân tích Pareto</div>', unsafe_allow_html=True)
@@ -566,12 +573,12 @@ with tab_customer:
             abc_stats.columns = ["Hạng", "Số SP", "Doanh thu"]
             abc_stats["% Doanh thu"] = (abc_stats["Doanh thu"] / abc_stats["Doanh thu"].sum() * 100).round(1)
             
-            st.dataframe(abc_stats, width='stretch', hide_index=True)
+            st.dataframe(abc_stats, use_container_width=True, hide_index=True)
             
             fig_abc_pie = px.pie(abc_stats, values="Doanh thu", names="Hạng",
                                 color_discrete_map={"A": "#22c55e", "B": "#fbbf24", "C": "#ef4444"})
             fig_abc_pie.update_layout(height=180, margin=dict(l=20, r=20, t=10, b=10))
-            st.plotly_chart(fig_abc_pie, width='stretch')
+            st.plotly_chart(fig_abc_pie, use_container_width=True)
 
 # ===================== TAB 4: AI ASSISTANT =====================
 with tab_ai:
@@ -587,7 +594,7 @@ with tab_ai:
             ["Tổng quan doanh thu", "Phân tích sản phẩm", "Phân tích khách hàng", "Phân tích khu vực", "Đề xuất chiến lược"]
         )
         
-        if st.button("Phân tích", width='stretch', type="primary"):
+        if st.button("Phân tích", use_container_width=True, type="primary"):
             with st.spinner("AI đang phân tích..."):
                 try:
                     if analysis_type == "Tổng quan doanh thu":
@@ -634,7 +641,7 @@ with tab_ai:
                     client = Groq(api_key=GROQ_API_KEY)
                     chat_completion = client.chat.completions.create(
                         messages=[{"role": "user", "content": prompt}],
-                        model="openai/gpt-oss-20b",
+                        model="llama3-70b-8192",
                         temperature=0.3,
                         max_tokens=1024
                     )
