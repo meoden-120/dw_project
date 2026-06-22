@@ -26,126 +26,120 @@ st.markdown("""
 
     .report-header {
         background: #1a2744;
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
-        margin-bottom: 1.2rem;
+        padding: 1.5rem 2rem;  /* Tăng padding */
+        border-radius: 12px;   /* Tăng bo tròn */
+        margin-bottom: 1.5rem;
         display: flex;
         justify-content: space-between;
         align-items: center;
         flex-wrap: wrap;
     }
-    .report-header h1 { color: #ffffff; font-size: 18px; font-weight: 600; margin: 0; }
-    .report-header .subtitle { color: #94a3b8; font-size: 12px; }
+    .report-header h1 { 
+        color: #ffffff; 
+        font-size: 26px;  /* Tăng từ 18px */
+        font-weight: 700; 
+        margin: 0; 
+    }
+    .report-header .subtitle { 
+        color: #94a3b8; 
+        font-size: 15px;  /* Tăng từ 12px */
+    }
     .report-header .badge {
-        background: rgba(59,130,246,0.2);
-        color: #60a5fa;
-        padding: 3px 12px;
-        border-radius: 16px;
-        font-size: 18px;
-        border: 1px solid rgba(59,130,246,0.3);
+        font-size: 14px;  /* Tăng từ 11px */
+        padding: 5px 16px; /* Tăng padding */
     }
 
     .metric-grid {
         display: grid;
         grid-template-columns: repeat(6, 1fr);
-        gap: 10px;
-        margin-bottom: 1.2rem;
+        gap: 15px;  /* Tăng gap */
+        margin-bottom: 1.5rem;
     }
     .metric-card {
         background: #ffffff;
-        padding: 12px 14px;
-        border-radius: 8px;
+        padding: 18px 20px;  /* Tăng padding */
+        border-radius: 10px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.06);
         border: 1px solid #e5e9f0;
         text-align: center;
     }
-    .metric-value { font-size: 20px; font-weight: 700; color: #0f1724; line-height: 1.2; }
-    .metric-label { font-size: 15px; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
-    .metric-trend { font-size: 15px; margin-top: 2px; }
-    .trend-up { color: #22c55e; }
-    .trend-down { color: #ef4444; }
+    .metric-value { 
+        font-size: 28px;  /* Tăng từ 20px */
+        font-weight: 700; 
+        color: #0f1724; 
+        line-height: 1.3; 
+    }
+    .metric-label { 
+        font-size: 13px;  /* Tăng từ 10px */
+        color: #64748b; 
+        text-transform: uppercase; 
+        letter-spacing: 0.5px; 
+        margin-top: 4px; 
+    }
+    .metric-trend { 
+        font-size: 12px;  /* Tăng từ 10px */
+        margin-top: 4px; 
+    }
 
     .section-title {
-        font-size: 16px;
+        font-size: 20px;  /* Tăng từ 14px */
         font-weight: 600;
         color: #0f1724;
-        margin-bottom: 0.6rem;
-        padding-bottom: 0.4rem;
-        border-bottom: 2px solid #e5e9f0;
-    }
-
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 0;
-        background: #ffffff;
-        border-radius: 8px;
-        border: 1px solid #e5e9f0;
-        padding: 3px;
-        margin-bottom: 0.8rem;
-    }
-    .stTabs [data-baseweb="tab"] {
-        padding: 5px 16px;
-        border-radius: 6px;
-        font-size: 18px;
-        font-weight: 500;
-        color: #64748b;
-    }
-    .stTabs [aria-selected="true"] { background: #f1f5f9; color: #0f1724; }
-
-    .filter-row {
-        background: #ffffff;
-        padding: 12px 16px;
-        border-radius: 8px;
-        border: 1px solid #e5e9f0;
         margin-bottom: 1rem;
+        padding-bottom: 0.6rem;
+        border-bottom: 3px solid #e5e9f0;  /* Tăng độ dày border */
     }
 
     .recommendation-card {
-        background: #ffffff;
-        padding: 16px;
-        border-radius: 8px;
-        border: 1px solid #e5e9f0;
-        margin-bottom: 10px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        padding: 20px;  /* Tăng padding */
+        border-radius: 10px;
+        margin-bottom: 12px;
     }
     .recommendation-card .rank {
-        font-size: 24px;
+        font-size: 32px;  /* Tăng từ 24px */
         font-weight: 700;
         color: #3b82f6;
-        margin-right: 12px;
+        margin-right: 16px;
     }
     .recommendation-card .product-name {
-        font-size: 16px;
+        font-size: 18px;  /* Tăng từ 16px */
         font-weight: 500;
         color: #0f1724;
     }
     .recommendation-card .product-score {
-        font-size: 16px;
+        font-size: 15px;  /* Tăng từ 13px */
         color: #64748b;
     }
 
     .shap-card {
-        background: #f8fafc;
-        padding: 12px 16px;
-        border-radius: 8px;
-        border-left: 4px solid #3b82f6;
-        margin-bottom: 6px;
+        padding: 16px 20px;  /* Tăng padding */
+        border-radius: 10px;
+        border-left-width: 6px;  /* Tăng độ dày border-left */
+        margin-bottom: 8px;
     }
-    .shap-card .feature { font-weight: 500; color: #0f1724; }
-    .shap-card .contribution { font-size: 13px; }
-    .shap-positive { color: #22c55e; }
-    .shap-negative { color: #ef4444; }
+    .shap-card .feature { 
+        font-size: 15px;  /* Tăng kích thước */
+        font-weight: 500; 
+    }
+    .shap-card .contribution { 
+        font-size: 15px; 
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        padding: 10px 24px;  /* Tăng padding */
+        font-size: 15px;  /* Tăng từ 12px */
+    }
+
+    .filter-row {
+        padding: 16px 24px;  /* Tăng padding */
+        border-radius: 10px;
+        margin-bottom: 1.2rem;
+    }
 
     .report-footer {
-        text-align: center;
-        color: #94a3b8;
-        font-size: 15px;
-        padding: 0.8rem 0;
-        border-top: 1px solid #e5e9f0;
-        margin-top: 1rem;
+        font-size: 13px;  /* Tăng từ 10px */
+        padding: 1rem 0;
     }
-
-    @media (max-width: 768px) { .metric-grid { grid-template-columns: repeat(3, 1fr); } }
-    @media (max-width: 480px) { .metric-grid { grid-template-columns: repeat(2, 1fr); } }
 </style>
 """, unsafe_allow_html=True)
 
