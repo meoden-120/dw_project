@@ -240,19 +240,18 @@ def load_svd_model():
     except Exception as e:
         st.error(f"Lỗi tải mô hình SVD: {e}")
         return None
-
-@st.cache_resource
-def load_surrogate_model():
-    try:
-        with open('shap_surrogate_model.pkl', 'rb') as f:
-            model = pickle.load(f)
-        return model
-    except FileNotFoundError:
-        st.warning("⚠️ Chưa tìm thấy file mô hình Surrogate. Vui lòng chạy Giai đoạn 3 để huấn luyện mô hình.")
-        return None
-    except Exception as e:
-        st.error(f"Lỗi tải mô hình Surrogate: {e}")
-        return None
+# @st.cache_resource
+#  def load_surrogate_model():
+#     try:
+#         with open('shap_surrogate_model.pkl', 'rb') as f:
+#             model = pickle.load(f)
+#         return model
+#     except FileNotFoundError:
+#         st.warning("⚠️ Chưa tìm thấy file mô hình Surrogate. Vui lòng chạy Giai đoạn 3 để huấn luyện mô hình.")
+#         return None
+#     except Exception as e:
+#         st.error(f"Lỗi tải mô hình Surrogate: {e}")
+#         return None 
 
 svd_model = load_svd_model()
 surrogate_model = load_surrogate_model()
