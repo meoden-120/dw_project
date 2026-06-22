@@ -367,13 +367,15 @@ with tab_prediction:
         
         if shap_available and shap_file_exists:
             try:
+                import matplotlib
+                matplotlib.use('Agg') # Ép Matplotlib dùng chế độ non-interactive để tránh lỗi giao diện trên Streamlit
                 import matplotlib.pyplot as plt
                 
                 with open('shap_surrogate_model.pkl', 'rb') as f:
                     surrogate_model = pickle.load(f)
                 
                 conn = duckdb.connect()
-                # SỬA: Thêm product_id vào mệnh đề SELECT
+                # 1. Lấy thông tin tương tác (Đã sửa thêm product_id)
                 interactions = conn.execute("""
                     SELECT customer_id, product_id, SUM(TRY_CAST(Total_quantity AS DOUBLE)) AS total_qty
                     FROM 'NKDL_Project.csv'
@@ -381,6 +383,7 @@ with tab_prediction:
                     GROUP BY customer_id, product_id
                 """).fetchdf()
                 
+                # 2. Lấy đặc trưng khách hàng
                 dac_trung = conn.execute("""
                     SELECT customer_id, AVG(TRY_CAST(loyalty_points AS DOUBLE)) AS avg_loyalty_points,
                            SUM(TRY_CAST(Total_quantity AS DOUBLE)) AS tong_so_luong_da_mua,
@@ -392,49 +395,47 @@ with tab_prediction:
                 """).fetchdf()
                 conn.close()
                 
+                # 3. Merge và tạo dummy variables
                 df_surrogate = interactions.merge(dac_trung, on='customer_id', how='left')
                 df_surrogate['gender'] = 'M'
-                
-                # Chuyển đổi dummies bình thường sau khi đã có cột product_id
                 df_surrogate = pd.get_dummies(df_surrogate, columns=['product_id'])
                 df_surrogate = df_surrogate.fillna(0)
                 
+                # 4. Loại bỏ các cột không dùng làm feature
                 cols_to_drop = ['customer_id', 'total_qty']
                 cols_to_drop = [c for c in cols_to_drop if c in df_surrogate.columns]
                 X = df_surrogate.drop(columns=cols_to_drop)
                 
-                # LƯU Ý QUAN TRỌNG: 
-                # Đảm bảo các cột trong X trùng khớp 100% về thứ tự và số lượng với mô hình đã train
+                # 5. ĐỒNG BỘ CỘT VỚI MODEL MẸ (QUAN TRỌNG NHẤT)
+                # Nếu model có lưu danh sách feature đã học, ta ép X theo đúng danh sách đó
                 if hasattr(surrogate_model, "feature_names_in_"):
-                    # Đồng bộ hóa các cột theo đúng model huấn luyện để tránh lỗi lệch features
-                    for col in surrogate_model.feature_names_in_:
+                    model_features = surrogate_model.feature_names_in_
+                    # Thiếu cột nào thì bù cột đó bằng 0
+                    for col in model_features:
                         if col not in X.columns:
                             X[col] = 0
-                    X = X[surrogate_model.feature_names_in_]
-
+                    # Thừa cột nào (do filter/dữ liệu mới) thì bỏ, và sắp xếp đúng thứ tự
+                    X = X[model_features]
+                
+                # 6. Tính toán SHAP và Vẽ biểu đồ
                 explainer = shap.TreeExplainer(surrogate_model)
                 shap_values = explainer.shap_values(X)
                 
-                explainer = shap.TreeExplainer(surrogate_model)
-                shap_values = explainer.shap_values(X)
-                
-                fig, ax = plt.subplots(figsize=(10, 6))
+                # Fix lỗi hiển thị biểu đồ bằng cách tạo figure tường minh
+                fig = plt.figure(figsize=(10, 6))
                 shap.summary_plot(shap_values, X, show=False, max_display=12)
                 plt.tight_layout()
                 st.pyplot(fig)
-                plt.close()
+                plt.close(fig) # Giải phóng bộ nhớ
                 
                 st.session_state['shap_values'] = shap_values
                 st.session_state['X'] = X
                 
             except Exception as e:
-                st.error(f"Lỗi khi chạy SHAP: {e}")
-        elif shap_available and not shap_file_exists:
-            st.info("📁 Upload file shap_surrogate_model.pkl để xem phân tích SHAP")
-        else:
-            st.info("⚠️ Cần cài đặt thư viện shap: pip install shap")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+                # In hẳn dòng lỗi chi tiết ra màn hình để debug
+                st.error(f"Lỗi thực thi SHAP chi tiết: {e}")
+                import traceback
+                st.code(traceback.format_exc())
     
     with col2:
         st.markdown('<div class="chart-box">', unsafe_allow_html=True)
