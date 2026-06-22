@@ -40,7 +40,7 @@ st.markdown("""
     }
     .report-header h1 { 
         color: #ffffff; 
-        font-size: 24px;  
+        font-size: 20px;  
         font-weight: 700; 
         margin: 0; 
         letter-spacing: -0.5px;
@@ -82,7 +82,7 @@ st.markdown("""
         border-color: #cbd5e1;
     }
     .metric-value { 
-        font-size: 30px;  
+        font-size: 24px;  
         font-weight: 700; 
         color: #0f172a; 
         line-height: 1.2; 
