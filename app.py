@@ -40,7 +40,7 @@ st.markdown("""
     }
     .report-header h1 { 
         color: #ffffff; 
-        font-size: 28px;  
+        font-size: 24px;  
         font-weight: 700; 
         margin: 0; 
         letter-spacing: -0.5px;
