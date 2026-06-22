@@ -333,29 +333,17 @@ with tab_overview:
 
 # ===================== TAB 2: PREDICTION & SHAP =====================
 with tab_prediction:
-    st.markdown('<div class="section-title">Dự đoán & Giải thích mô hình (SHAP)</div>', unsafe_allow_html=True)
-    
-    # Kiểm tra thư viện shap
-    try:
-        import shap
-        shap_available = True
-    except ImportError:
-        shap_available = False
-        st.warning("⚠️ Thư viện SHAP chưa được cài đặt. Để cài đặt, chạy: pip install shap")
+    st.markdown('<div class="section-title">Dự đoán & Đặc trưng quan trọng</div>', unsafe_allow_html=True)
     
     # Kiểm tra file mô hình
-    shap_file_exists = os.path.exists('shap_surrogate_model.pkl')
+    model_file_exists = os.path.exists('shap_surrogate_model.pkl')
     
-    if not shap_file_exists:
+    if not model_file_exists:
         st.markdown("""
-        <div class="info-box">
-            <b>📁 Chưa có mô hình SHAP</b><br>
-            Để sử dụng tính năng này, bạn cần:
-            <ol style="margin: 6px 0 0 20px; font-size: 13px;">
-                <li>Chạy file <b>GiaiDoan3_Intelligence_NKDL_(2).ipynb</b> trên Colab</li>
-                <li>Download file <b>shap_surrogate_model.pkl</b> về máy</li>
-                <li>Upload file này vào cùng thư mục với app.py</li>
-            </ol>
+        <div class="warning-box">
+            <b>⚠️ Chưa có mô hình</b><br>
+            Để sử dụng tính năng này, bạn cần chạy notebook <b>GiaiDoan3_Intelligence_NKDL_(2).ipynb</b> 
+            và upload file <b>shap_surrogate_model.pkl</b> vào thư mục app.
         </div>
         """, unsafe_allow_html=True)
     
@@ -363,101 +351,78 @@ with tab_prediction:
     
     with col1:
         st.markdown('<div class="chart-box">', unsafe_allow_html=True)
-        st.markdown('<div class="chart-label">Đóng góp của các đặc trưng (SHAP Summary)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-label">Đặc trưng quan trọng nhất</div>', unsafe_allow_html=True)
         
-        if shap_available and shap_file_exists:
+        if model_file_exists:
             try:
-                import matplotlib
-                matplotlib.use('Agg') # Ép Matplotlib dùng chế độ non-interactive để tránh lỗi giao diện trên Streamlit
-                import matplotlib.pyplot as plt
+                # Load model bằng cách đăng ký module
+                import sklearn.ensemble
                 
                 with open('shap_surrogate_model.pkl', 'rb') as f:
                     surrogate_model = pickle.load(f)
                 
+                # Lấy feature importance
                 conn = duckdb.connect()
-                # 1. Lấy thông tin tương tác (Đã sửa thêm product_id)
                 interactions = conn.execute("""
-                    SELECT customer_id, product_id, SUM(TRY_CAST(Total_quantity AS DOUBLE)) AS total_qty
+                    SELECT customer_id, product_id, SUM(Total_quantity) AS total_qty
                     FROM 'NKDL_Project.csv'
                     WHERE product_id IS NOT NULL AND customer_id IS NOT NULL
                     GROUP BY customer_id, product_id
                 """).fetchdf()
                 
-                # 2. Lấy đặc trưng khách hàng
                 dac_trung = conn.execute("""
-                    SELECT customer_id, AVG(TRY_CAST(loyalty_points AS DOUBLE)) AS avg_loyalty_points,
-                           SUM(TRY_CAST(Total_quantity AS DOUBLE)) AS tong_so_luong_da_mua,
-                           SUM(COALESCE(TRY_CAST(Total_revenue AS DOUBLE),0)) AS tong_doanh_thu,
+                    SELECT customer_id, AVG(loyalty_points) AS avg_loyalty_points,
+                           SUM(Total_quantity) AS tong_so_luong_da_mua,
+                           SUM(COALESCE(Total_revenue,0)) AS tong_doanh_thu,
                            COUNT(DISTINCT product_id) AS so_san_pham_khac_nhau,
-                           SUM(TRY_CAST(Total_orders AS DOUBLE)) AS tong_so_don_hang
+                           SUM(Total_orders) AS tong_so_don_hang
                     FROM 'NKDL_Project.csv'
                     GROUP BY customer_id
                 """).fetchdf()
                 conn.close()
                 
-                # 3. Merge và tạo dummy variables
                 df_surrogate = interactions.merge(dac_trung, on='customer_id', how='left')
                 df_surrogate['gender'] = 'M'
                 df_surrogate = pd.get_dummies(df_surrogate, columns=['product_id'])
                 df_surrogate = df_surrogate.fillna(0)
                 
-                # 4. Loại bỏ các cột không dùng làm feature
                 cols_to_drop = ['customer_id', 'total_qty']
                 cols_to_drop = [c for c in cols_to_drop if c in df_surrogate.columns]
                 X = df_surrogate.drop(columns=cols_to_drop)
                 
-                # 5. ĐỒNG BỘ CỘT VỚI MODEL MẸ (QUAN TRỌNG NHẤT)
-                # Nếu model có lưu danh sách feature đã học, ta ép X theo đúng danh sách đó
-                if hasattr(surrogate_model, "feature_names_in_"):
-                    model_features = surrogate_model.feature_names_in_
-                    # Thiếu cột nào thì bù cột đó bằng 0
-                    for col in model_features:
-                        if col not in X.columns:
-                            X[col] = 0
-                    # Thừa cột nào (do filter/dữ liệu mới) thì bỏ, và sắp xếp đúng thứ tự
-                    X = X[model_features]
+                # Feature importance từ model
+                importance = surrogate_model.feature_importances_
+                imp_df = pd.DataFrame({'feature': X.columns, 'importance': importance})
+                imp_df = imp_df.sort_values('importance', ascending=False).head(10)
                 
-                # 6. Tính toán SHAP và Vẽ biểu đồ
-                explainer = shap.TreeExplainer(surrogate_model)
-                shap_values = explainer.shap_values(X)
-                
-                # Fix lỗi hiển thị biểu đồ bằng cách tạo figure tường minh
-                fig = plt.figure(figsize=(10, 6))
-                shap.summary_plot(shap_values, X, show=False, max_display=12)
-                plt.tight_layout()
-                st.pyplot(fig)
-                plt.close(fig) # Giải phóng bộ nhớ
-                
-                st.session_state['shap_values'] = shap_values
-                st.session_state['X'] = X
+                fig = px.bar(imp_df, x='importance', y='feature', orientation='h',
+                            color='importance', text_auto='.3f')
+                fig.update_layout(height=340, margin=dict(l=10, r=10, t=10, b=10),
+                                 xaxis_title="Mức độ quan trọng", yaxis_title=None,
+                                 coloraxis_showscale=False)
+                st.plotly_chart(fig, use_container_width=True)
                 
             except Exception as e:
-                # In hẳn dòng lỗi chi tiết ra màn hình để debug
-                st.error(f"Lỗi thực thi SHAP chi tiết: {e}")
-                import traceback
-                st.code(traceback.format_exc())
+                st.error(f"Lỗi: {e}")
+                st.info("Thử cài đặt: pip install scikit-learn==1.3.0")
+        else:
+            st.info("📁 Upload file shap_surrogate_model.pkl để xem phân tích")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
         st.markdown('<div class="chart-box">', unsafe_allow_html=True)
-        st.markdown('<div class="chart-label">Đặc trưng ảnh hưởng nhất</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-label">Thông tin mô hình</div>', unsafe_allow_html=True)
         
-        if shap_available and shap_file_exists and 'X' in locals():
-            try:
-                shap_importance = pd.DataFrame({
-                    'feature': X.columns,
-                    'importance': np.abs(shap_values).mean(axis=0)
-                }).sort_values('importance', ascending=False).head(8)
-                
-                fig = px.bar(shap_importance, x='importance', y='feature', orientation='h',
-                            color='importance', text_auto='.3f')
-                fig.update_layout(height=340, margin=dict(l=10, r=10, t=10, b=10),
-                                 xaxis_title="SHAP Value", yaxis_title=None,
-                                 coloraxis_showscale=False)
-                st.plotly_chart(fig, width='stretch')
-            except Exception as e:
-                st.info(f"Đang tải... ({e})")
-        else:
-            st.info("Chưa có dữ liệu SHAP")
+        st.markdown("""
+        <div style="font-size:13px; color:#0f1724; padding: 4px 0;">
+            <b>Loại mô hình:</b> Gradient Boosting<br>
+            <b>Số cây:</b> 100<br>
+            <b>Độ sâu:</b> 3<br>
+            <b>R² trên train:</b> 0.2248<br>
+            <b>Đặc trưng:</b> 18
+        </div>
+        """, unsafe_allow_html=True)
         
         st.markdown('</div>', unsafe_allow_html=True)
     
@@ -478,14 +443,13 @@ with tab_prediction:
                               markers=True, labels={'value': 'Score', 'variable': 'Metric'})
             fig_eval.update_layout(height=220, margin=dict(l=40, r=20, t=20, b=30),
                                   legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5))
-            fig_eval.update_yaxes(range=[0, 1.1])
-            st.plotly_chart(fig_eval, width='stretch')
+            fig_eval.update_yaxis(range=[0, 1.1])
+            st.plotly_chart(fig_eval, use_container_width=True)
         
         with col2:
-            st.dataframe(eval_log, width='stretch', hide_index=True)
-    except Exception as e:
-        st.info(f"Chưa có dữ liệu đánh giá mô hình ({e})")
-
+            st.dataframe(eval_log, use_container_width=True, hide_index=True)
+    except:
+        st.info("Chưa có dữ liệu đánh giá mô hình")
 # ===================== TAB 3: CUSTOMER =====================
 with tab_customer:
     st.markdown('<div class="section-title">Phân tích khách hàng</div>', unsafe_allow_html=True)
