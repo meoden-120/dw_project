@@ -372,7 +372,8 @@ with tab_prediction:
                 with open('shap_surrogate_model.pkl', 'rb') as f:
                     surrogate_model = pickle.load(f)
                 
-                conn = duckdb.connect()
+conn = duckdb.connect()
+                # SỬA: Thêm product_id vào mệnh đề SELECT
                 interactions = conn.execute("""
                     SELECT customer_id, product_id, SUM(TRY_CAST(Total_quantity AS DOUBLE)) AS total_qty
                     FROM 'NKDL_Project.csv'
@@ -393,12 +394,26 @@ with tab_prediction:
                 
                 df_surrogate = interactions.merge(dac_trung, on='customer_id', how='left')
                 df_surrogate['gender'] = 'M'
+                
+                # Chuyển đổi dummies bình thường sau khi đã có cột product_id
                 df_surrogate = pd.get_dummies(df_surrogate, columns=['product_id'])
                 df_surrogate = df_surrogate.fillna(0)
                 
                 cols_to_drop = ['customer_id', 'total_qty']
                 cols_to_drop = [c for c in cols_to_drop if c in df_surrogate.columns]
                 X = df_surrogate.drop(columns=cols_to_drop)
+                
+                # LƯU Ý QUAN TRỌNG: 
+                # Đảm bảo các cột trong X trùng khớp 100% về thứ tự và số lượng với mô hình đã train
+                if hasattr(surrogate_model, "feature_names_in_"):
+                    # Đồng bộ hóa các cột theo đúng model huấn luyện để tránh lỗi lệch features
+                    for col in surrogate_model.feature_names_in_:
+                        if col not in X.columns:
+                            X[col] = 0
+                    X = X[surrogate_model.feature_names_in_]
+
+                explainer = shap.TreeExplainer(surrogate_model)
+                shap_values = explainer.shap_values(X)
                 
                 explainer = shap.TreeExplainer(surrogate_model)
                 shap_values = explainer.shap_values(X)
