@@ -177,13 +177,22 @@ def load_data():
 
         if os.path.exists(db_path):
             conn = duckdb.connect(db_path, read_only=True)
-            # Lấy tên bảng đầu tiên trong DB
-            tables = conn.execute("SHOW TABLES").fetchdf()
-            table_name = tables.iloc[0, 0] if not tables.empty else None
-            if table_name is None:
-                st.error("Database không có bảng nào.")
+            # DB dùng schema 'gold_layer', không phải 'main'
+            # Bảng chính là retail_gold trong gold_layer
+            tables = conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_schema = 'gold_layer'
+                ORDER BY table_name
+            """).fetchdf()
+            # Ưu tiên bảng retail_gold, fallback bảng đầu tiên
+            if 'retail_gold' in tables['table_name'].values:
+                table_name = 'retail_gold'
+            elif not tables.empty:
+                table_name = tables.iloc[0, 0]
+            else:
+                st.error("Database không có bảng nào trong schema gold_layer.")
                 return pd.DataFrame()
-            from_clause = table_name
+            from_clause = f"gold_layer.{table_name}"
         elif os.path.exists(csv_path):
             conn = duckdb.connect()
             from_clause = f"'{csv_path}'"
@@ -412,9 +421,7 @@ with tab_prediction:
                     csv_path = 'NKDL_Project.csv'
                     if os.path.exists(db_path):
                         conn = duckdb.connect(db_path, read_only=True)
-                        tables = conn.execute("SHOW TABLES").fetchdf()
-                        tbl = tables.iloc[0, 0]
-                        from_clause = tbl
+                        from_clause = 'gold_layer.retail_gold'
                     else:
                         conn = duckdb.connect()
                         from_clause = f"'{csv_path}'"
