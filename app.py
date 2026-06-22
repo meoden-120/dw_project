@@ -333,94 +333,130 @@ with tab_overview:
 
 # ===================== TAB 2: PREDICTION & SHAP =====================
 with tab_prediction:
-    st.markdown('<div class="section-title">Dự đoán & Đặc trưng quan trọng</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Dự đoán & Giải thích mô hình (SHAP)</div>', unsafe_allow_html=True)
     
-    try:
-        from sklearn.ensemble import GradientBoostingRegressor
+    if not SHAP_AVAILABLE:
+        st.warning("⚠️ SHAP chưa được cài đặt. Đang thử cài đặt...")
+        # Thử cài đặt lại
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "shap==0.42.1", "-q"])
+            import shap
+            import matplotlib.pyplot as plt
+            SHAP_AVAILABLE = True
+            st.success("✅ Đã cài đặt SHAP thành công! Vui lòng refresh lại trang.")
+        except:
+            st.error("Không thể cài đặt SHAP. Vui lòng cài thủ công: pip install shap==0.42.1")
+    
+    # Kiểm tra file mô hình
+    model_file = 'shap_surrogate_model.pkl'
+    
+    if not os.path.exists(model_file):
+        st.markdown("""
+        <div class="warning-box">
+            <b>⚠️ Chưa có mô hình SHAP</b><br>
+            Để sử dụng tính năng này, bạn cần:
+            <ol style="margin: 6px 0 0 20px; font-size: 13px;">
+                <li>Chạy file <b>GiaiDoan3_Intelligence_NKDL_(2).ipynb</b> trên Colab</li>
+                <li>Download file <b>shap_surrogate_model.pkl</b> về máy</li>
+                <li>Upload file này vào cùng thư mục với app.py</li>
+            </ol>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown('<div class="chart-box">', unsafe_allow_html=True)
+        st.markdown('<div class="chart-label">Đóng góp của các đặc trưng (SHAP Summary)</div>', unsafe_allow_html=True)
         
-        st.info("⏳ Đang huấn luyện mô hình từ dữ liệu...")
+        if SHAP_AVAILABLE and os.path.exists(model_file):
+            try:
+                with st.spinner("⏳ Đang tính toán SHAP values..."):
+                    from sklearn.ensemble import GradientBoostingRegressor
+                    
+                    with open(model_file, 'rb') as f:
+                        surrogate_model = pickle.load(f)
+                    
+                    conn = duckdb.connect()
+                    
+                    # Lấy interactions
+                    interactions = conn.execute("""
+                        SELECT customer_id, product_id, SUM(TRY_CAST(Total_quantity AS DOUBLE)) AS total_qty
+                        FROM 'NKDL_Project.csv'
+                        WHERE product_id IS NOT NULL AND customer_id IS NOT NULL
+                        GROUP BY customer_id, product_id
+                    """).fetchdf()
+                    
+                    # Lấy đặc trưng khách hàng
+                    dac_trung = conn.execute("""
+                        SELECT 
+                            customer_id,
+                            AVG(TRY_CAST(loyalty_points AS DOUBLE)) AS avg_loyalty_points,
+                            SUM(TRY_CAST(Total_quantity AS DOUBLE)) AS tong_so_luong_da_mua,
+                            SUM(COALESCE(TRY_CAST(Total_revenue AS DOUBLE), 0)) AS tong_doanh_thu,
+                            COUNT(DISTINCT product_id) AS so_san_pham_khac_nhau,
+                            SUM(TRY_CAST(Total_orders AS DOUBLE)) AS tong_so_don_hang
+                        FROM 'NKDL_Project.csv'
+                        GROUP BY customer_id
+                    """).fetchdf()
+                    conn.close()
+                    
+                    df_surrogate = interactions.merge(dac_trung, on='customer_id', how='left')
+                    df_surrogate['gender'] = 'M'
+                    df_surrogate = pd.get_dummies(df_surrogate, columns=['product_id'])
+                    df_surrogate = df_surrogate.fillna(0)
+                    
+                    cols_to_drop = ['customer_id', 'total_qty']
+                    cols_to_drop = [c for c in cols_to_drop if c in df_surrogate.columns]
+                    X = df_surrogate.drop(columns=cols_to_drop)
+                    
+                    # Tính SHAP
+                    explainer = shap.TreeExplainer(surrogate_model)
+                    shap_values = explainer.shap_values(X)
+                    
+                    # Vẽ SHAP summary
+                    fig, ax = plt.subplots(figsize=(10, 6))
+                    shap.summary_plot(shap_values, X, show=False, max_display=12)
+                    plt.tight_layout()
+                    st.pyplot(fig)
+                    plt.close()
+                    
+                    st.session_state['shap_values'] = shap_values
+                    st.session_state['X'] = X
+                    
+            except Exception as e:
+                st.error(f"Lỗi khi chạy SHAP: {e}")
+                st.info("Thử cài đặt: pip install shap==0.42.1 scikit-learn==1.3.0")
+        elif not os.path.exists(model_file):
+            st.info("📁 Upload file shap_surrogate_model.pkl để xem phân tích SHAP")
+        else:
+            st.info("⚠️ SHAP chưa sẵn sàng")
         
-        # Tạo dữ liệu huấn luyện từ file CSV
-        conn = duckdb.connect()
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown('<div class="chart-box">', unsafe_allow_html=True)
+        st.markdown('<div class="chart-label">Đặc trưng ảnh hưởng nhất</div>', unsafe_allow_html=True)
         
-        # Lấy interactions
-        interactions = conn.execute("""
-            SELECT customer_id, product_id, SUM(Total_quantity) AS total_qty
-            FROM 'NKDL_Project.csv'
-            WHERE product_id IS NOT NULL AND customer_id IS NOT NULL
-            GROUP BY customer_id, product_id
-        """).fetchdf()
+        if SHAP_AVAILABLE and 'shap_values' in st.session_state:
+            try:
+                shap_importance = pd.DataFrame({
+                    'feature': st.session_state['X'].columns,
+                    'importance': np.abs(st.session_state['shap_values']).mean(axis=0)
+                }).sort_values('importance', ascending=False).head(8)
+                
+                fig = px.bar(shap_importance, x='importance', y='feature', orientation='h',
+                            color='importance', text_auto='.3f')
+                fig.update_layout(height=340, margin=dict(l=10, r=10, t=10, b=10),
+                                 xaxis_title="SHAP Value", yaxis_title=None,
+                                 coloraxis_showscale=False)
+                st.plotly_chart(fig, use_container_width=True)
+            except:
+                st.info("Đang tải...")
+        else:
+            st.info("Chưa có dữ liệu SHAP")
         
-        # Lấy đặc trưng khách hàng - ÉP KIỂU dữ liệu và LẤY THÊM cột gender thực tế
-        dac_trung = conn.execute("""
-            SELECT 
-                customer_id, 
-                ANY_VALUE(gender) AS gender,
-                AVG(TRY_CAST(loyalty_points AS DOUBLE)) AS avg_loyalty_points,
-                SUM(TRY_CAST(Total_quantity AS DOUBLE)) AS tong_so_luong_da_mua,
-                SUM(COALESCE(TRY_CAST(Total_revenue AS DOUBLE), 0)) AS tong_doanh_thu,
-                COUNT(DISTINCT product_id) AS so_san_pham_khac_nhau,
-                SUM(TRY_CAST(Total_orders AS DOUBLE)) AS tong_so_don_hang
-            FROM 'NKDL_Project.csv'
-            GROUP BY customer_id
-        """).fetchdf()
-        conn.close()
-        
-        # Ghép dữ liệu
-        df_surrogate = interactions.merge(dac_trung, on='customer_id', how='left')
-        
-        # XỬ LÝ LỖI: Mã hóa One-hot cho cả product_id và gender về dạng số (0 và 1)
-        df_surrogate = pd.get_dummies(df_surrogate, columns=['product_id', 'gender'])
-        df_surrogate = df_surrogate.fillna(0)
-        
-        cols_to_drop = ['customer_id', 'total_qty']
-        cols_to_drop = [c for c in cols_to_drop if c in df_surrogate.columns]
-        X = df_surrogate.drop(columns=cols_to_drop)
-        y = df_surrogate['total_qty']
-        
-        # Train model ngay tại đây
-        model = GradientBoostingRegressor(n_estimators=100, max_depth=3, learning_rate=0.1, random_state=42)
-        model.fit(X, y)
-        
-        st.success("✅ Đã huấn luyện mô hình thành công!")
-        
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            st.markdown('<div class="chart-box">', unsafe_allow_html=True)
-            st.markdown('<div class="chart-label">Đặc trưng quan trọng nhất</div>', unsafe_allow_html=True)
-            
-            # Feature importance
-            importance = model.feature_importances_
-            imp_df = pd.DataFrame({'feature': X.columns, 'importance': importance})
-            imp_df = imp_df.sort_values('importance', ascending=False).head(10)
-            
-            fig = px.bar(imp_df, x='importance', y='feature', orientation='h',
-                        color='importance', text_auto='.3f')
-            fig.update_layout(height=340, margin=dict(l=10, r=10, t=10, b=10),
-                             xaxis_title="Mức độ quan trọng", yaxis_title=None,
-                             coloraxis_showscale=False)
-            st.plotly_chart(fig, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown('<div class="chart-box">', unsafe_allow_html=True)
-            st.markdown('<div class="chart-label">Thông tin mô hình</div>', unsafe_allow_html=True)
-            
-            st.markdown(f"""
-            <div style="font-size:13px; color:#0f1724; padding: 4px 0;">
-                <b>Loại mô hình:</b> Gradient Boosting<br>
-                <b>Số cây:</b> 100<br>
-                <b>Độ sâu:</b> 3<br>
-                <b>R² trên train:</b> {model.score(X, y):.4f}<br>
-                <b>Đặc trưng:</b> {X.shape[1]}
-            </div>
-            """, unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-        
-    except Exception as e:
-        st.error(f"Lỗi: {e}")
-        st.info("Đảm bảo file NKDL_Project.csv có trong thư mục")
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # Model performance
     st.markdown('<div class="section-title">Hiệu suất mô hình</div>', unsafe_allow_html=True)
