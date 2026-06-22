@@ -351,10 +351,11 @@ with tab_prediction:
             GROUP BY customer_id, product_id
         """).fetchdf()
         
-        # Lấy đặc trưng khách hàng - ÉP KIỂU dữ liệu
+        # Lấy đặc trưng khách hàng - ÉP KIỂU dữ liệu và LẤY THÊM cột gender thực tế
         dac_trung = conn.execute("""
             SELECT 
                 customer_id, 
+                ANY_VALUE(gender) AS gender,
                 AVG(TRY_CAST(loyalty_points AS DOUBLE)) AS avg_loyalty_points,
                 SUM(TRY_CAST(Total_quantity AS DOUBLE)) AS tong_so_luong_da_mua,
                 SUM(COALESCE(TRY_CAST(Total_revenue AS DOUBLE), 0)) AS tong_doanh_thu,
@@ -367,8 +368,9 @@ with tab_prediction:
         
         # Ghép dữ liệu
         df_surrogate = interactions.merge(dac_trung, on='customer_id', how='left')
-        df_surrogate['gender'] = 'M'
-        df_surrogate = pd.get_dummies(df_surrogate, columns=['product_id'])
+        
+        # XỬ LÝ LỖI: Mã hóa One-hot cho cả product_id và gender về dạng số (0 và 1)
+        df_surrogate = pd.get_dummies(df_surrogate, columns=['product_id', 'gender'])
         df_surrogate = df_surrogate.fillna(0)
         
         cols_to_drop = ['customer_id', 'total_qty']
@@ -444,7 +446,7 @@ with tab_prediction:
             st.dataframe(eval_log, use_container_width=True, hide_index=True)
     except:
         st.info("Chưa có dữ liệu đánh giá mô hình")
-# ===================== TAB 3: CUSTOMER =====================
+#==================== TAB 3: CUSTOMER =====================
 with tab_customer:
     st.markdown('<div class="section-title">Phân tích khách hàng</div>', unsafe_allow_html=True)
     
