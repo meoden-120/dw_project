@@ -376,7 +376,7 @@ with tab_prediction:
     st.markdown('<div class="section-title">Dự đoán & Giải thích mô hình (SHAP)</div>', unsafe_allow_html=True)
     
     if not SHAP_AVAILABLE:
-        st.warning("⚠️ SHAP chưa được cài đặt. Vui lòng chạy: `pip install shap==0.42.1 matplotlib` rồi restart app.")
+        st.warning("⚠️ SHAP chưa được cài đặt. Vui lòng chạy: `pip install shap>=0.50.0 matplotlib` rồi restart app.")
     
     # Kiểm tra file mô hình
     model_file = 'shap_surrogate_model.pkl'
@@ -450,9 +450,10 @@ with tab_prediction:
                     cols_to_drop = [c for c in cols_to_drop if c in df_surrogate.columns]
                     X = df_surrogate.drop(columns=cols_to_drop)
                     
-                    # Tính SHAP
+                    # Tính SHAP (tương thích shap >= 0.50)
                     explainer = shap.TreeExplainer(surrogate_model)
-                    shap_values = explainer.shap_values(X)
+                    explanation = explainer(X)
+                    shap_values = explanation.values
                     
                     # Vẽ SHAP summary
                     fig, ax = plt.subplots(figsize=(10, 6))
@@ -466,7 +467,7 @@ with tab_prediction:
                     
             except Exception as e:
                 st.error(f"Lỗi khi chạy SHAP: {e}")
-                st.info("Thử cài đặt: pip install shap==0.42.1 scikit-learn==1.3.0")
+                st.info("Thử cài đặt: pip install shap>=0.50.0 scikit-learn>=1.4.0")
         elif not os.path.exists(model_file):
             st.info("📁 Upload file shap_surrogate_model.pkl để xem phân tích SHAP")
         else:
