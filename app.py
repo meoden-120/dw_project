@@ -351,13 +351,15 @@ with tab_prediction:
             GROUP BY customer_id, product_id
         """).fetchdf()
         
-        # Lấy đặc trưng khách hàng
+        # Lấy đặc trưng khách hàng - ÉP KIỂU dữ liệu
         dac_trung = conn.execute("""
-            SELECT customer_id, AVG(loyalty_points) AS avg_loyalty_points,
-                   SUM(Total_quantity) AS tong_so_luong_da_mua,
-                   SUM(COALESCE(Total_revenue,0)) AS tong_doanh_thu,
-                   COUNT(DISTINCT product_id) AS so_san_pham_khac_nhau,
-                   SUM(Total_orders) AS tong_so_don_hang
+            SELECT 
+                customer_id, 
+                AVG(TRY_CAST(loyalty_points AS DOUBLE)) AS avg_loyalty_points,
+                SUM(TRY_CAST(Total_quantity AS DOUBLE)) AS tong_so_luong_da_mua,
+                SUM(COALESCE(TRY_CAST(Total_revenue AS DOUBLE), 0)) AS tong_doanh_thu,
+                COUNT(DISTINCT product_id) AS so_san_pham_khac_nhau,
+                SUM(TRY_CAST(Total_orders AS DOUBLE)) AS tong_so_don_hang
             FROM 'NKDL_Project.csv'
             GROUP BY customer_id
         """).fetchdf()
@@ -441,7 +443,8 @@ with tab_prediction:
         with col2:
             st.dataframe(eval_log, use_container_width=True, hide_index=True)
     except:
-        st.info("Chưa có dữ liệu đánh giá mô hình")# ===================== TAB 3: CUSTOMER =====================
+        st.info("Chưa có dữ liệu đánh giá mô hình")
+# ===================== TAB 3: CUSTOMER =====================
 with tab_customer:
     st.markdown('<div class="section-title">Phân tích khách hàng</div>', unsafe_allow_html=True)
     
