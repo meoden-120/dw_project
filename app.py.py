@@ -22,7 +22,6 @@ st.set_page_config(
 # ===================== CSS =====================
 st.markdown("""
 <style>
-    .main { background: #f5f7fa; }
     .block-container { padding-top: 1rem; padding-bottom: 0; max-width: 1400px; }
 
     .report-header {
