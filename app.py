@@ -848,7 +848,7 @@ Trả lời bằng tiếng Việt, dùng định dạng markdown rõ ràng.
                     client = Groq(api_key=GROQ_API_KEY)
                     chat_completion = client.chat.completions.create(
                         messages=[{"role": "user", "content": prompt}],
-                        model="llama3-70b-8192",
+                        model="llama-3.1-70b-versatile",
                         temperature=0.3,
                         max_tokens=1024
                     )
