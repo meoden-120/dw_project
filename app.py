@@ -8,6 +8,39 @@ from datetime import datetime, timedelta
 import numpy as np
 import pickle
 import os
+import sys
+import subprocess
+
+st.set_page_config(
+    page_title="Báo Cáo Dữ Liệu Nội Bộ", 
+    page_icon="📊",
+    layout="wide"
+)
+
+# ===================== KIỂM TRA THƯ VIỆN =====================
+SHAP_AVAILABLE = False
+try:
+    import shap
+    import matplotlib.pyplot as plt
+    SHAP_AVAILABLE = True
+    print("✅ SHAP đã sẵn sàng")
+except ImportError as e:
+    print(f"⚠️ SHAP chưa được cài đặt: {e}")
+
+# ===================== CÀI ĐẶT SHAP NẾU CHƯA CÓ =====================
+if not SHAP_AVAILABLE:
+    try:
+        st.info("⏳ Đang cài đặt SHAP...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "shap==0.42.1", "-q"])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "matplotlib", "-q"])
+        
+        # Thử import lại
+        import shap
+        import matplotlib.pyplot as plt
+        SHAP_AVAILABLE = True
+        st.success("✅ Đã cài đặt SHAP thành công!")
+    except Exception as e:
+        st.error(f"❌ Không thể cài đặt SHAP: {e}")
 
 st.set_page_config(
     page_title="Báo Cáo Dữ Liệu Nội Bộ", 
