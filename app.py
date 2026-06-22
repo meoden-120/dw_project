@@ -21,182 +21,170 @@ st.set_page_config(
 # ===================== CSS =====================
 st.markdown("""
 <style>
-    /* Tổng thể ứng dụng */
-    .main { background: #f8fafc; }
-    .block-container { padding-top: 1.5rem; padding-bottom: 2rem; max-width: 1400px; }
+    .main { background: #f5f7fa; }
+    .block-container { padding-top: 1rem; padding-bottom: 0; max-width: 1400px; }
 
-    /* Thanh Header chính */
     .report-header {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        padding: 1.75rem 2.5rem;  
-        border-radius: 16px;   
-        margin-bottom: 2rem;
+        background: #1a2744;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.2rem;
         display: flex;
         justify-content: space-between;
         align-items: center;
         flex-wrap: wrap;
-        box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.15);
-        gap: 1rem;
     }
-    .report-header h1 { 
-        color: #ffffff; 
-        font-size: 20px;  
-        font-weight: 700; 
-        margin: 0; 
-        letter-spacing: -0.5px;
-    }
-    .report-header .subtitle { 
-        color: #94a3b8; 
-        font-size: 15px;  
-        margin-top: 4px;
-    }
+    .report-header h1 { color: #ffffff; font-size: 18px; font-weight: 600; margin: 0; }
+    .report-header .subtitle { color: #94a3b8; font-size: 12px; }
     .report-header .badge {
-        font-size: 13px;  
-        font-weight: 600;
-        padding: 6px 16px; 
-        border-radius: 9999px;
-        background: rgba(255, 255, 255, 0.1);
-        color: #f1f5f9;
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(59,130,246,0.2);
+        color: #60a5fa;
+        padding: 3px 12px;
+        border-radius: 16px;
+        font-size: 11px;
+        border: 1px solid rgba(59,130,246,0.3);
     }
 
-    /* Lưới hiển thị chỉ số (Metric Grid) */
+    /* === METRIC GRID - HÀNG TRÊN (4 CỘT) === */
     .metric-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Tự co giãn linh hoạt */
-        gap: 20px;  
-        margin-bottom: 2rem;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 12px;
     }
+    
+    /* === METRIC GRID - HÀNG DƯỚI (2 CỘT) === */
+    .metric-grid-bottom {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 1.2rem;
+    }
+    
     .metric-card {
         background: #ffffff;
-        padding: 20px;  
-        border-radius: 14px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-        border: 1px solid #f1f5f9;
+        padding: 14px 16px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        border: 1px solid #e5e9f0;
         text-align: center;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .metric-card:hover {
-        transform: translateY(-4px); /* Hiệu ứng nhấc lên khi di chuột */
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        border-color: #cbd5e1;
     }
     .metric-value { 
-        font-size: 24px;  
+        font-size: 22px; 
         font-weight: 700; 
-        color: #0f172a; 
-        line-height: 1.2; 
+        color: #0f1724; 
+        line-height: 1.3; 
     }
     .metric-label { 
-        font-size: 12px;  
-        font-weight: 600;
+        font-size: 11px; 
         color: #64748b; 
         text-transform: uppercase; 
-        letter-spacing: 0.75px; 
-        margin-top: 8px; 
+        letter-spacing: 0.3px; 
+        margin-top: 4px; 
     }
     .metric-trend { 
-        font-size: 12px;  
-        font-weight: 500;
-        margin-top: 6px; 
+        font-size: 11px; 
+        margin-top: 4px; 
     }
+    .trend-up { color: #22c55e; }
+    .trend-down { color: #ef4444; }
 
-    /* Tiêu đề phân khu */
     .section-title {
-        font-size: 22px;  
-        font-weight: 700;
-        color: #0f172a;
-        margin-top: 1.5rem;
-        margin-bottom: 1.25rem;
-        padding-bottom: 0.75rem;
-        border-bottom: 2px solid #e2e8f0;  
-    }
-
-    /* Thẻ gợi ý (Recommendation Card) */
-    .recommendation-card {
-        background: #ffffff;
-        padding: 22px;  
-        border-radius: 14px;
-        margin-bottom: 14px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.04);
-        border: 1px solid #f1f5f9;
-        display: flex;
-        align-items: center;
-        transition: border-color 0.2s ease;
-    }
-    .recommendation-card:hover {
-        border-color: #3b82f6;
-    }
-    .recommendation-card .rank {
-        font-size: 34px;  
-        font-weight: 800;
-        color: #3b82f6;
-        margin-right: 20px;
-        line-height: 1;
-    }
-    .recommendation-card .product-name {
-        font-size: 18px;  
+        font-size: 14px;
         font-weight: 600;
-        color: #1e293b;
-    }
-    .recommendation-card .product-score {
-        font-size: 14px;  
-        color: #64748b;
-        margin-top: 2px;
+        color: #0f1724;
+        margin-bottom: 0.6rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 2px solid #e5e9f0;
     }
 
-    /* Thẻ SHAP giải thích mô hình */
-    .shap-card {
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0;
         background: #ffffff;
-        padding: 16px 24px;  
-        border-radius: 12px;
-        border-left: 6px solid #e2e8f0;  
-        margin-bottom: 10px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        border-radius: 8px;
+        border: 1px solid #e5e9f0;
+        padding: 3px;
+        margin-bottom: 0.8rem;
     }
-    .shap-card .feature { 
-        font-size: 15px;  
-        font-weight: 500; 
-        color: #334155;
-    }
-    .shap-card .contribution { 
-        font-size: 15px;  
-        font-weight: 600;
-    }
-
-    /* Định dạng thanh điều hướng Tabs mẫu của Streamlit */
     .stTabs [data-baseweb="tab"] {
-        padding: 12px 28px;  
-        font-size: 15px;  
+        padding: 5px 16px;
+        border-radius: 6px;
+        font-size: 12px;
         font-weight: 500;
         color: #64748b;
-        transition: color 0.2s ease;
     }
-    .stTabs [data-baseweb="tab"]:hover {
-        color: #1e293b;
-    }
+    .stTabs [aria-selected="true"] { background: #f1f5f9; color: #0f1724; }
 
-    /* Khu vực bộ lọc dữ liệu */
     .filter-row {
         background: #ffffff;
-        padding: 20px 24px;  
-        border-radius: 14px;
-        margin-bottom: 1.5rem;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: 1px solid #e5e9f0;
+        margin-bottom: 1rem;
     }
 
-    /* Chân trang */
+    .recommendation-card {
+        background: #ffffff;
+        padding: 16px;
+        border-radius: 8px;
+        border: 1px solid #e5e9f0;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .recommendation-card .rank {
+        font-size: 24px;
+        font-weight: 700;
+        color: #3b82f6;
+        margin-right: 12px;
+    }
+    .recommendation-card .product-name {
+        font-size: 16px;
+        font-weight: 500;
+        color: #0f1724;
+    }
+    .recommendation-card .product-score {
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    .shap-card {
+        background: #f8fafc;
+        padding: 12px 16px;
+        border-radius: 8px;
+        border-left: 4px solid #3b82f6;
+        margin-bottom: 6px;
+    }
+    .shap-card .feature { font-weight: 500; color: #0f1724; }
+    .shap-card .contribution { font-size: 13px; }
+    .shap-positive { color: #22c55e; }
+    .shap-negative { color: #ef4444; }
+
     .report-footer {
-        font-size: 13px;  
-        color: #94a3b8;
-        padding: 1.5rem 0;
         text-align: center;
-        border-top: 1px solid #e2e8f0;
-        margin-top: 2rem;
+        color: #94a3b8;
+        font-size: 10px;
+        padding: 0.8rem 0;
+        border-top: 1px solid #e5e9f0;
+        margin-top: 1rem;
+    }
+
+    /* === RESPONSIVE - MOBILE === */
+    @media (max-width: 768px) {
+        .metric-grid {
+            grid-template-columns: repeat(2, 1fr);  /* 2 cột trên tablet/mobile */
+        }
+        .metric-grid-bottom {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    @media (max-width: 480px) {
+        .metric-grid {
+            grid-template-columns: repeat(2, 1fr);  /* 2 cột trên điện thoại nhỏ */
+        }
+        .metric-grid-bottom {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .metric-value { font-size: 18px; }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -459,6 +447,7 @@ if len(unique_months) >= 2:
     if prev_rev > 0:
         mom_growth = (curr_rev - prev_rev) / prev_rev * 100
 
+# Hàng trên: 4 chỉ số
 st.markdown(f"""
 <div class="metric-grid">
     <div class="metric-card">
@@ -480,6 +469,10 @@ st.markdown(f"""
         <div class="metric-value">{avg_rev:,.0f}</div>
         <div class="metric-label">Doanh thu TB/tháng</div>
     </div>
+</div>
+
+<!-- Hàng dưới: 2 chỉ số -->
+<div class="metric-grid-bottom">
     <div class="metric-card">
         <div class="metric-value">{avg_order_value:,.0f}</div>
         <div class="metric-label">Giá trị đơn TB</div>
