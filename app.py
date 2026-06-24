@@ -1,4 +1,3 @@
-
 import streamlit as st
 import duckdb
 import plotly.express as px
@@ -21,188 +20,425 @@ st.set_page_config(
     layout="wide"
 )
 
-# ===================== CSS =====================
+# ===================== CSS — ENTERPRISE DEEP BLUE =====================
 st.markdown("""
 <style>
-    .main { background: #f5f7fa; }
-    .block-container { padding-top: 1rem; padding-bottom: 0; max-width: 1400px; }
+    /* ── GOOGLE FONT ── */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-    .report-header {
-        background: #1a2744;
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
-        margin-bottom: 1.2rem;
+    /* ── PALETTE ──
+        --navy-950  : #050d1f  (darkest bg)
+        --navy-900  : #0a1628  (sidebar / header)
+        --navy-800  : #0f2040  (card bg dark)
+        --navy-700  : #153058  (border / divider)
+        --blue-600  : #1a56db  (primary action)
+        --blue-500  : #3b82f6  (accent / links)
+        --blue-400  : #60a5fa  (highlight text)
+        --blue-300  : #93c5fd  (muted accent)
+        --slate-100 : #f1f5f9  (page bg)
+        --slate-50  : #f8fafc  (card bg light)
+        --white     : #ffffff
+    */
+
+    html, body, [class*="css"] {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    /* ── PAGE BG ── */
+    .stApp {
+        background: #f0f4f9;
+    }
+    .main .block-container {
+        padding: 0 1.5rem 2rem 1.5rem;
+        max-width: 1440px;
+    }
+
+    /* ══════════════════════════════════════════════
+       HEADER
+    ══════════════════════════════════════════════ */
+    .app-header {
+        background: linear-gradient(135deg, #050d1f 0%, #0a1628 60%, #0f2040 100%);
+        padding: 1.4rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 1.25rem;
         display: flex;
         justify-content: space-between;
         align-items: center;
         flex-wrap: wrap;
+        gap: 1rem;
+        border-bottom: 3px solid #1a56db;
+        box-shadow: 0 4px 24px rgba(5, 13, 31, 0.35);
+        position: relative;
+        overflow: hidden;
     }
-    .report-header h1 { color: #ffffff; font-size: 24px; font-weight: 600; margin: 0; }
-    .report-header .subtitle { color: #94a3b8; font-size: 15px; }
-    .report-header .badge {
-        background: rgba(59,130,246,0.2);
+    .app-header::before {
+        content: '';
+        position: absolute;
+        top: -60px; right: -60px;
+        width: 220px; height: 220px;
+        background: radial-gradient(circle, rgba(26,86,219,0.18) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .app-header::after {
+        content: '';
+        position: absolute;
+        bottom: -40px; left: 40%;
+        width: 180px; height: 180px;
+        background: radial-gradient(circle, rgba(59,130,246,0.10) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .header-left { position: relative; z-index: 1; }
+    .header-eyebrow {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 2px;
+        text-transform: uppercase;
         color: #60a5fa;
-        padding: 3px 12px;
-        border-radius: 16px;
+        margin-bottom: 4px;
+    }
+    .header-title {
+        font-size: 22px;
+        font-weight: 800;
+        color: #ffffff;
+        margin: 0;
+        line-height: 1.2;
+        letter-spacing: -0.3px;
+    }
+    .header-sub {
+        font-size: 13px;
+        color: #93c5fd;
+        margin-top: 5px;
+        font-weight: 400;
+    }
+    .header-badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        position: relative;
+        z-index: 1;
+    }
+    .badge {
+        background: rgba(26, 86, 219, 0.25);
+        color: #93c5fd;
+        padding: 5px 12px;
+        border-radius: 20px;
         font-size: 11px;
-        border: 1px solid rgba(59,130,246,0.3);
+        font-weight: 600;
+        border: 1px solid rgba(59, 130, 246, 0.35);
+        letter-spacing: 0.3px;
+        backdrop-filter: blur(4px);
+    }
+    .badge-date {
+        background: rgba(255,255,255,0.07);
+        color: #cbd5e1;
+        border-color: rgba(255,255,255,0.12);
     }
 
-    /* === METRIC GRID - HÀNG TRÊN (4 CỘT) === */
-    .metric-grid {
+    /* ══════════════════════════════════════════════
+       FILTER BAR
+    ══════════════════════════════════════════════ */
+    .filter-bar {
+        background: #ffffff;
+        padding: 14px 20px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1.2rem;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+
+    /* ══════════════════════════════════════════════
+       METRIC CARDS
+    ══════════════════════════════════════════════ */
+    .kpi-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 12px;
-        margin-bottom: 12px;
+        gap: 14px;
+        margin-bottom: 14px;
     }
-    
-    /* === METRIC GRID - HÀNG DƯỚI (2 CỘT) === */
-    .metric-grid-bottom {
+    .kpi-grid-2 {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-        margin-bottom: 1.2rem;
+        gap: 14px;
+        margin-bottom: 1.4rem;
     }
-    
-    .metric-card {
+    .kpi-card {
         background: #ffffff;
-        padding: 14px 16px;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-        border: 1px solid #e5e9f0;
-        text-align: center;
+        border-radius: 10px;
+        padding: 18px 20px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        position: relative;
+        overflow: hidden;
+        transition: box-shadow 0.2s;
     }
-    .metric-value { 
-        font-size: 24px; 
-        font-weight: 700; 
-        color: #0f1724; 
-        line-height: 1.3; 
+    .kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(180deg, #1a56db, #3b82f6);
+        border-radius: 10px 0 0 10px;
     }
-    .metric-label { 
-        font-size: 15px; 
-        color: #64748b; 
-        text-transform: uppercase; 
-        letter-spacing: 0.3px; 
-        margin-top: 4px; 
+    .kpi-card:hover {
+        box-shadow: 0 4px 16px rgba(26,86,219,0.10);
     }
-    .metric-trend { 
-        font-size: 14px; 
-        margin-top: 4px; 
+    .kpi-label {
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: #94a3b8;
+        margin-bottom: 8px;
     }
-    .trend-up { color: #22c55e; }
-    .trend-down { color: #ef4444; }
-
-    .section-title {
-        font-size: 14px;
+    .kpi-value {
+        font-size: 26px;
+        font-weight: 800;
+        color: #0a1628;
+        line-height: 1.15;
+        letter-spacing: -0.5px;
+    }
+    .kpi-trend {
+        font-size: 12px;
         font-weight: 600;
-        color: #0f1724;
-        margin-bottom: 0.6rem;
-        padding-bottom: 0.4rem;
-        border-bottom: 2px solid #e5e9f0;
+        margin-top: 6px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .trend-up   { color: #16a34a; }
+    .trend-down { color: #dc2626; }
+    .trend-icon { font-size: 14px; }
+
+    /* ══════════════════════════════════════════════
+       SECTION TITLES
+    ══════════════════════════════════════════════ */
+    .section-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #0a1628;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin: 1.2rem 0 0.75rem 0;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .section-title::before {
+        content: '';
+        display: inline-block;
+        width: 3px;
+        height: 14px;
+        background: linear-gradient(180deg, #1a56db, #3b82f6);
+        border-radius: 2px;
     }
 
+    /* ══════════════════════════════════════════════
+       TABS
+    ══════════════════════════════════════════════ */
     .stTabs [data-baseweb="tab-list"] {
         gap: 0;
         background: #ffffff;
-        border-radius: 8px;
-        border: 1px solid #e5e9f0;
-        padding: 3px;
-        margin-bottom: 0.8rem;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        padding: 4px;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     }
     .stTabs [data-baseweb="tab"] {
-        padding: 5px 16px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 500;
+        padding: 7px 18px;
+        border-radius: 7px;
+        font-size: 12.5px;
+        font-weight: 600;
         color: #64748b;
+        letter-spacing: 0.1px;
+        transition: all 0.15s;
     }
-    .stTabs [aria-selected="true"] { background: #f1f5f9; color: #0f1724; }
-
-    .filter-row {
-        background: #ffffff;
-        padding: 12px 16px;
-        border-radius: 8px;
-        border: 1px solid #e5e9f0;
-        margin-bottom: 1rem;
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #1a56db, #2563eb) !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 8px rgba(26,86,219,0.30);
     }
 
-    .recommendation-card {
+    /* ══════════════════════════════════════════════
+       RECOMMENDATION CARDS
+    ══════════════════════════════════════════════ */
+    .rec-card {
         background: #ffffff;
-        padding: 16px;
-        border-radius: 8px;
-        border: 1px solid #e5e9f0;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        padding: 16px 18px;
         margin-bottom: 10px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        transition: box-shadow 0.2s, border-color 0.2s;
     }
-    .recommendation-card .rank {
-        font-size: 24px;
-        font-weight: 700;
-        color: #3b82f6;
-        margin-right: 12px;
+    .rec-card:hover {
+        border-color: #93c5fd;
+        box-shadow: 0 4px 16px rgba(26,86,219,0.10);
     }
-    .recommendation-card .product-name {
-        font-size: 16px;
-        font-weight: 500;
-        color: #0f1724;
+    .rec-rank {
+        width: 42px; height: 42px;
+        background: linear-gradient(135deg, #1a56db, #3b82f6);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px; font-weight: 800; color: #ffffff;
+        flex-shrink: 0;
+        box-shadow: 0 3px 10px rgba(26,86,219,0.30);
     }
-    .recommendation-card .product-score {
-        font-size: 13px;
+    .rec-body { flex: 1; }
+    .rec-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: #0a1628;
+        margin-bottom: 3px;
+    }
+    .rec-meta {
+        font-size: 12px;
         color: #64748b;
     }
+    .rec-score {
+        background: #eff6ff;
+        color: #1a56db;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+        border: 1px solid #bfdbfe;
+        flex-shrink: 0;
+    }
 
+    /* ══════════════════════════════════════════════
+       SHAP EXPLAIN CARD
+    ══════════════════════════════════════════════ */
     .shap-card {
-        background: #f8fafc;
-        padding: 12px 16px;
+        background: #f0f7ff;
         border-radius: 8px;
-        border-left: 4px solid #3b82f6;
+        border-left: 4px solid #1a56db;
+        padding: 12px 16px;
         margin-bottom: 6px;
     }
-    .shap-card .feature { font-weight: 500; color: #0f1724; }
-    .shap-card .contribution { font-size: 13px; }
-    .shap-positive { color: #22c55e; }
-    .shap-negative { color: #ef4444; }
+    .shap-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+        font-size: 13px;
+    }
+    .shap-key   { color: #1e3a5f; font-weight: 600; }
+    .shap-val   { color: #334155; }
+    .shap-note  { font-size: 12px; color: #475569; margin-top: 8px; padding-top: 8px; border-top: 1px solid #dbeafe; }
 
-    .report-footer {
+    /* ══════════════════════════════════════════════
+       INFO / EXPLAIN BOX
+    ══════════════════════════════════════════════ */
+    .info-box {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 10px;
+        padding: 16px 18px;
+        margin-top: 14px;
+    }
+    .info-box h4 { color: #0a1628; margin: 0 0 10px 0; font-size: 14px; font-weight: 700; }
+    .info-box ul { margin: 0; padding-left: 18px; color: #334155; font-size: 13.5px; line-height: 1.8; }
+
+    /* ══════════════════════════════════════════════
+       DATAFRAME OVERRIDES
+    ══════════════════════════════════════════════ */
+    .stDataFrame thead tr th {
+        background: #0a1628 !important;
+        color: #ffffff !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* ══════════════════════════════════════════════
+       SELECTBOX / SLIDER LABELS
+    ══════════════════════════════════════════════ */
+    label[data-testid="stWidgetLabel"] {
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: #475569 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+    }
+
+    /* ══════════════════════════════════════════════
+       BUTTONS
+    ══════════════════════════════════════════════ */
+    .stButton > button {
+        background: linear-gradient(135deg, #1a56db, #2563eb) !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.3px !important;
+        box-shadow: 0 2px 8px rgba(26,86,219,0.30) !important;
+        transition: all 0.2s !important;
+    }
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #1648c0, #1d4ed8) !important;
+        box-shadow: 0 4px 16px rgba(26,86,219,0.40) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* ══════════════════════════════════════════════
+       EXPANDER
+    ══════════════════════════════════════════════ */
+    .streamlit-expanderHeader {
+        background: #f8fafc !important;
+        border-radius: 8px !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        color: #1a56db !important;
+    }
+
+    /* ══════════════════════════════════════════════
+       FOOTER
+    ══════════════════════════════════════════════ */
+    .app-footer {
         text-align: center;
         color: #94a3b8;
-        font-size: 10px;
-        padding: 0.8rem 0;
-        border-top: 1px solid #e5e9f0;
-        margin-top: 1rem;
+        font-size: 11px;
+        padding: 1rem 0 0.5rem;
+        border-top: 1px solid #e2e8f0;
+        margin-top: 1.5rem;
+        letter-spacing: 0.3px;
     }
 
-    /* === RESPONSIVE - MOBILE === */
+    /* ══════════════════════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════════════════════ */
     @media (max-width: 768px) {
-        .metric-grid {
-            grid-template-columns: repeat(2, 1fr);  /* 2 cột trên tablet/mobile */
-        }
-        .metric-grid-bottom {
-            grid-template-columns: repeat(2, 1fr);
-        }
+        .kpi-grid  { grid-template-columns: repeat(2, 1fr); }
+        .kpi-grid-2{ grid-template-columns: repeat(2, 1fr); }
+        .header-title { font-size: 17px; }
     }
     @media (max-width: 480px) {
-        .metric-grid {
-            grid-template-columns: repeat(2, 1fr);  /* 2 cột trên điện thoại nhỏ */
-        }
-        .metric-grid-bottom {
-            grid-template-columns: repeat(2, 1fr);
-        }
-        .metric-value { font-size: 18px; }
+        .kpi-value { font-size: 20px; }
+        .kpi-card  { padding: 14px 14px; }
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ===================== HEADER =====================
 st.markdown(f"""
-<div class="report-header">
-    <div>
-        <h1>📊 Báo Cáo Dữ Liệu Nội Bộ & Khuyến Nghị Sản Phẩm</h1>
-        <div class="subtitle">Hệ thống phân tích doanh thu & khuyến nghị sản phẩm dựa trên dữ liệu tầng Gold</div>
+<div class="app-header">
+    <div class="header-left">
+        <div class="header-eyebrow">📊 Business Intelligence Platform</div>
+        <div class="header-title">Báo Cáo Dữ Liệu Nội Bộ &amp; Khuyến Nghị Sản Phẩm</div>
+        <div class="header-sub">Hệ thống phân tích doanh thu &amp; khuyến nghị sản phẩm dựa trên dữ liệu tầng Gold</div>
     </div>
-    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <div class="header-badges">
         <span class="badge">🧠 Mô hình SVD</span>
         <span class="badge">📈 SHAP Explainable AI</span>
-        <span class="badge">{datetime.now().strftime('%d/%m/%Y')}</span>
+        <span class="badge badge-date">{datetime.now().strftime('%d/%m/%Y')}</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -283,14 +519,14 @@ def load_svd_model():
     except Exception as e:
         st.error(f"Lỗi tải mô hình SVD: {e}")
         return None
+
 @st.cache_resource
 def load_surrogate_model():
     try:
         with open('shap_surrogate_model.pkl', 'rb') as f:
-            model = pickle.load(f, fix_imports=True)  # ← Thêm fix_imports=True
+            model = pickle.load(f, fix_imports=True)
         return model
     except Exception:
-        # Thử cách khác nếu vẫn lỗi
         try:
             import joblib
             model = joblib.load('shap_surrogate_model.pkl')
@@ -301,29 +537,7 @@ def load_surrogate_model():
 svd_model = load_svd_model()
 surrogate_model = load_surrogate_model()
 
-# svd_model = load_svd_model()
-# surrogate_model = load_surrogate_model()
-
-# # ===== DEBUG: Kiểm tra surrogate model =====
-# st.sidebar.markdown("### 🔧 Debug Info")
-# st.sidebar.write(f"File tồn tại: {os.path.exists('shap_surrogate_model.pkl')}")
-
-# if os.path.exists('shap_surrogate_model.pkl'):
-#     try:
-#         with open('shap_surrogate_model.pkl', 'rb') as f:
-#             test_model = pickle.load(f)
-#         st.sidebar.success(f"✅ Load được model: {type(test_model).__name__}")
-#         st.sidebar.write(f"Model type: {type(test_model)}")
-#         if hasattr(test_model, 'feature_names_in_'):
-#             st.sidebar.write(f"Features: {len(test_model.feature_names_in_)}")
-#     except Exception as e:
-#         st.sidebar.error(f"❌ Lỗi load: {str(e)}")
-#         st.sidebar.error(f"❌ Exception type: {type(e).__name__}")
-# else:
-#     st.sidebar.error("❌ File không tồn tại")
-# # =========================================
-
-# ===================== [MODIFIED] CACHE SHAP EXPLAINER =====================
+# ===================== CACHE SHAP EXPLAINER =====================
 @st.cache_resource
 def get_shap_explainer():
     try:
@@ -331,7 +545,7 @@ def get_shap_explainer():
     except Exception:
         return None
 
-# ===================== [MODIFIED] BUILD FEATURE VECTOR =====================
+# ===================== BUILD FEATURE VECTOR =====================
 def build_feature_vector(customer_id, product_id):
     customer_data = df_raw[df_raw['customer_id'] == customer_id]
     if customer_data.empty or surrogate_model is None:
@@ -367,59 +581,34 @@ def build_feature_vector(customer_id, product_id):
 
     return row
 
-
 # ===================== HÀM GỢI Ý SẢN PHẨM =====================
 def get_recommendations(customer_id, k=3):
-    """
-    Sinh Top-K khuyến nghị cho 1 khách hàng dựa trên mô hình SVD đã huấn luyện
-    """
     if svd_model is None:
         return []
-    
     try:
-        # Lấy danh sách customer và product từ model
         customer_index = svd_model['customer_index']
         product_columns = svd_model['product_columns']
-        
-        # Kiểm tra customer có trong model không
         if customer_id not in customer_index:
             return []
-        
-        # Lấy vị trí của customer
         idx = customer_index.index(customer_id)
-        
-        # Tái tạo điểm dự đoán cho customer này
         U = svd_model['U']
         sigma = svd_model['sigma']
         Vt = svd_model['Vt']
         user_means = svd_model['user_means']
-        
-        # Tái tạo ma trận điểm số
         predicted = np.dot(np.dot(U[idx:idx+1], sigma), Vt) + user_means[idx]
-        
-        # Tạo dictionary ánh xạ sản phẩm -> điểm số
         pred_dict = {product_columns[i]: predicted[0][i] for i in range(len(product_columns))}
-        
-        # Tìm các sản phẩm khách hàng đã mua từ dữ liệu thực tế
         da_mua = set(df_raw[df_raw['customer_id'] == customer_id]['product_id'].dropna().unique())
-        
-        # Loại bỏ sản phẩm đã mua và lấy top K
         for prod in da_mua:
             if prod in pred_dict:
                 pred_dict[prod] = -np.inf
-        
-        # Sắp xếp và lấy top K
         top_k = sorted(pred_dict.items(), key=lambda x: x[1], reverse=True)[:k]
-        
         return [{'product_id': prod, 'score': score} for prod, score in top_k if score > -np.inf/2]
-    
     except Exception as e:
         st.error(f"Lỗi khi sinh gợi ý: {e}")
         return []
 
 # ===================== HÀM GIẢI THÍCH =====================
 def explain_recommendation(customer_id, product_id):
-    # [MODIFIED] Sử dụng SHAP thực tế thay vì giải thích tĩnh
     if surrogate_model is None or svd_model is None:
         return None
 
@@ -470,39 +659,48 @@ def explain_recommendation(customer_id, product_id):
     except Exception:
         return None
 
+# ===================== PLOTLY THEME =====================
+PLOTLY_LAYOUT = dict(
+    font=dict(family="Inter, system-ui, sans-serif", color="#334155"),
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    margin=dict(l=50, r=20, t=30, b=50),
+    xaxis=dict(gridcolor="#e2e8f0", linecolor="#e2e8f0"),
+    yaxis=dict(gridcolor="#e2e8f0", linecolor="#e2e8f0"),
+)
+
 # ===================== BỘ LỌC =====================
-with st.container():
-    st.markdown('<div class="filter-row">', unsafe_allow_html=True)
-    cols = st.columns([1, 1, 1, 1, 1.5])
+st.markdown('<div class="filter-bar">', unsafe_allow_html=True)
+cols = st.columns([1, 1, 1, 1, 1.5])
 
-    with cols[0]:
-        categories = ["Tất cả"] + sorted(df_raw["category"].dropna().unique().tolist())
-        selected_category = st.selectbox("Danh mục", categories)
+with cols[0]:
+    categories = ["Tất cả"] + sorted(df_raw["category"].dropna().unique().tolist())
+    selected_category = st.selectbox("Danh mục", categories)
 
-    with cols[1]:
-        years = ["Tất cả"] + sorted(df_raw["year"].dropna().unique().tolist(), reverse=True)
-        selected_year = st.selectbox("Năm", years)
+with cols[1]:
+    years = ["Tất cả"] + sorted(df_raw["year"].dropna().unique().tolist(), reverse=True)
+    selected_year = st.selectbox("Năm", years)
 
-    with cols[2]:
-        months = ["Tất cả"] + sorted(df_raw["month"].dropna().unique().tolist())
-        selected_month = st.selectbox("Tháng", months)
+with cols[2]:
+    months = ["Tất cả"] + sorted(df_raw["month"].dropna().unique().tolist())
+    selected_month = st.selectbox("Tháng", months)
 
-    with cols[3]:
-        genders = ["Tất cả"] + sorted(df_raw["gender"].dropna().unique().tolist())
-        selected_gender = st.selectbox("Giới tính", genders)
+with cols[3]:
+    genders = ["Tất cả"] + sorted(df_raw["gender"].dropna().unique().tolist())
+    selected_gender = st.selectbox("Giới tính", genders)
 
-    with cols[4]:
-        min_price = float(df_raw['min_price'].min())
-        max_price = float(df_raw['max_price'].max())
-        price_range = st.slider(
-            "Khoảng giá",
-            min_value=min_price,
-            max_value=max_price,
-            value=(min_price, max_price),
-            step=5000.0,
-            format="%d"
-        )
-    st.markdown('</div>', unsafe_allow_html=True)
+with cols[4]:
+    min_price = float(df_raw['min_price'].min())
+    max_price = float(df_raw['max_price'].max())
+    price_range = st.slider(
+        "Khoảng giá",
+        min_value=min_price,
+        max_value=max_price,
+        value=(min_price, max_price),
+        step=5000.0,
+        format="%d"
+    )
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Áp dụng bộ lọc
 df = df_raw.copy()
@@ -535,39 +733,40 @@ if len(unique_months) >= 2:
     if prev_rev > 0:
         mom_growth = (curr_rev - prev_rev) / prev_rev * 100
 
-# Hàng trên: 4 chỉ số
+trend_cls   = "trend-up" if mom_growth >= 0 else "trend-down"
+trend_arrow = "▲" if mom_growth >= 0 else "▼"
+
 st.markdown(f"""
-<div class="metric-grid">
-    <div class="metric-card">
-        <div class="metric-value">{total_rev:,.0f}</div>
-        <div class="metric-label">Doanh thu (VNĐ)</div>
-        <div class="metric-trend {'trend-up' if mom_growth >= 0 else 'trend-down'}">
-            {'↑' if mom_growth >= 0 else '↓'} {abs(mom_growth):.1f}% so tháng trước
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-label">Doanh thu (VNĐ)</div>
+        <div class="kpi-value">{total_rev:,.0f}</div>
+        <div class="kpi-trend {trend_cls}">
+            <span class="trend-icon">{trend_arrow}</span>
+            {abs(mom_growth):.1f}% so tháng trước
         </div>
     </div>
-    <div class="metric-card">
-        <div class="metric-value">{total_qty:,.0f}</div>
-        <div class="metric-label">Số lượng bán</div>
+    <div class="kpi-card">
+        <div class="kpi-label">Số lượng bán</div>
+        <div class="kpi-value">{total_qty:,.0f}</div>
     </div>
-    <div class="metric-card">
-        <div class="metric-value">{total_ord:,.0f}</div>
-        <div class="metric-label">Đơn hàng</div>
+    <div class="kpi-card">
+        <div class="kpi-label">Đơn hàng</div>
+        <div class="kpi-value">{total_ord:,.0f}</div>
     </div>
-    <div class="metric-card">
-        <div class="metric-value">{avg_rev:,.0f}</div>
-        <div class="metric-label">Doanh thu TB/tháng</div>
+    <div class="kpi-card">
+        <div class="kpi-label">Doanh thu TB/tháng</div>
+        <div class="kpi-value">{avg_rev:,.0f}</div>
     </div>
 </div>
-
-<!-- Hàng dưới: 2 chỉ số -->
-<div class="metric-grid-bottom">
-    <div class="metric-card">
-        <div class="metric-value">{avg_order_value:,.0f}</div>
-        <div class="metric-label">Giá trị đơn TB</div>
+<div class="kpi-grid-2">
+    <div class="kpi-card">
+        <div class="kpi-label">Giá trị đơn trung bình</div>
+        <div class="kpi-value">{avg_order_value:,.0f}</div>
     </div>
-    <div class="metric-card">
-        <div class="metric-value">{unique_customers:,}</div>
-        <div class="metric-label">Khách hàng</div>
+    <div class="kpi-card">
+        <div class="kpi-label">Khách hàng</div>
+        <div class="kpi-value">{unique_customers:,}</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -586,8 +785,6 @@ tab_overview, tab_customer, tab_recommend, tab_model, tab_shap, tab_ai = st.tabs
 # TAB 1 — TỔNG QUAN
 # ============================================================
 with tab_overview:
-
-    # --- Doanh thu theo thời gian ---
     st.markdown('<div class="section-title">Doanh thu theo thời gian</div>', unsafe_allow_html=True)
     df_line = df.groupby("year_month")["revenue"].sum().reset_index().sort_values("year_month")
     if not df_line.empty:
@@ -595,26 +792,25 @@ with tab_overview:
             df_line, x="year_month", y="revenue", markers=True,
             labels={"year_month": "Tháng", "revenue": "Doanh thu (VNĐ)"}
         )
-        fig_line.update_traces(line_color="#3b82f6", marker_color="#1a2744")
-        fig_line.update_layout(height=300, margin=dict(l=50, r=20, t=20, b=40),
+        fig_line.update_traces(line=dict(color="#1a56db", width=2.5),
+                               marker=dict(color="#1a56db", size=7))
+        fig_line.update_layout(height=300, **PLOTLY_LAYOUT,
                                xaxis_title="Tháng", yaxis_title="Doanh thu (VNĐ)")
         st.plotly_chart(fig_line, use_container_width=True)
 
-    # --- Doanh thu theo danh mục ---
     st.markdown('<div class="section-title">Doanh thu theo danh mục</div>', unsafe_allow_html=True)
     df_cat = df.groupby("category")["revenue"].sum().reset_index().sort_values("revenue", ascending=False)
     if not df_cat.empty:
         fig_cat = px.bar(
             df_cat, x="category", y="revenue", color="revenue",
             labels={"category": "Danh mục", "revenue": "Doanh thu (VNĐ)"},
-            color_continuous_scale="Blues"
+            color_continuous_scale=[[0, "#93c5fd"], [1, "#1a56db"]]
         )
-        fig_cat.update_layout(height=320, margin=dict(l=50, r=20, t=20, b=60),
+        fig_cat.update_layout(height=320, **PLOTLY_LAYOUT,
                                xaxis_title="Danh mục", yaxis_title="Doanh thu (VNĐ)",
                                coloraxis_showscale=False)
         st.plotly_chart(fig_cat, use_container_width=True)
 
-    # --- Top 10 sản phẩm ---
     st.markdown('<div class="section-title">Top 10 sản phẩm theo doanh thu</div>', unsafe_allow_html=True)
     df_top = (df.groupby("product_name")["revenue"].sum()
                 .reset_index().sort_values("revenue", ascending=True).tail(10))
@@ -622,14 +818,13 @@ with tab_overview:
         fig_top = px.bar(
             df_top, x="revenue", y="product_name", orientation="h", color="revenue",
             labels={"revenue": "Doanh thu (VNĐ)", "product_name": "Sản phẩm"},
-            color_continuous_scale="Blues"
+            color_continuous_scale=[[0, "#bfdbfe"], [1, "#1a56db"]]
         )
-        fig_top.update_layout(height=380, margin=dict(l=20, r=20, t=10, b=40),
+        fig_top.update_layout(height=380, **PLOTLY_LAYOUT,
                                xaxis_title="Doanh thu (VNĐ)", yaxis_title=None,
                                coloraxis_showscale=False)
         st.plotly_chart(fig_top, use_container_width=True)
 
-    # --- Doanh thu theo tỉnh/thành ---
     st.markdown('<div class="section-title">Top 10 tỉnh/thành theo doanh thu</div>', unsafe_allow_html=True)
     df_state = (df.groupby("state")["revenue"].sum()
                   .reset_index().sort_values("revenue", ascending=True).tail(10))
@@ -637,14 +832,13 @@ with tab_overview:
         fig_state = px.bar(
             df_state, x="revenue", y="state", orientation="h", color="revenue",
             labels={"revenue": "Doanh thu (VNĐ)", "state": "Tỉnh/Thành"},
-            color_continuous_scale="Teal"
+            color_continuous_scale=[[0, "#a5f3fc"], [1, "#0891b2"]]
         )
-        fig_state.update_layout(height=360, margin=dict(l=20, r=20, t=10, b=40),
+        fig_state.update_layout(height=360, **PLOTLY_LAYOUT,
                                  xaxis_title="Doanh thu (VNĐ)", yaxis_title=None,
                                  coloraxis_showscale=False)
         st.plotly_chart(fig_state, use_container_width=True)
 
-    # --- Bảng dữ liệu chi tiết ---
     with st.expander("📋 Xem dữ liệu chi tiết", expanded=False):
         st.dataframe(df.reset_index(drop=True), use_container_width=True, height=300)
 
@@ -652,22 +846,19 @@ with tab_overview:
 # TAB 2 — KHÁCH HÀNG
 # ============================================================
 with tab_customer:
-
-    # --- Doanh thu theo giới tính ---
     st.markdown('<div class="section-title">Doanh thu theo giới tính</div>', unsafe_allow_html=True)
     df_gender = df.groupby("gender")["revenue"].sum().reset_index().sort_values("revenue", ascending=False)
     if not df_gender.empty:
         fig_gender = px.bar(
             df_gender, x="gender", y="revenue", color="gender",
             labels={"gender": "Giới tính", "revenue": "Doanh thu (VNĐ)"},
-            color_discrete_sequence=["#3b82f6", "#f472b6", "#94a3b8"]
+            color_discrete_sequence=["#1a56db", "#60a5fa", "#94a3b8"]
         )
-        fig_gender.update_layout(height=300, margin=dict(l=50, r=20, t=20, b=50),
+        fig_gender.update_layout(height=300, **PLOTLY_LAYOUT,
                                   xaxis_title="Giới tính", yaxis_title="Doanh thu (VNĐ)",
                                   showlegend=False)
         st.plotly_chart(fig_gender, use_container_width=True)
 
-    # --- Top 10 khách hàng theo điểm tích lũy ---
     st.markdown('<div class="section-title">Top 10 khách hàng theo điểm tích lũy</div>', unsafe_allow_html=True)
     df_loyalty = (df.groupby("customer_name")["loyalty_points"].sum()
                     .reset_index().sort_values("loyalty_points", ascending=True).tail(10))
@@ -676,14 +867,13 @@ with tab_customer:
             df_loyalty, x="loyalty_points", y="customer_name", orientation="h",
             color="loyalty_points",
             labels={"loyalty_points": "Điểm tích lũy", "customer_name": "Khách hàng"},
-            color_continuous_scale="Oranges"
+            color_continuous_scale=[[0, "#bfdbfe"], [1, "#1a56db"]]
         )
-        fig_loyalty.update_layout(height=360, margin=dict(l=20, r=20, t=10, b=40),
+        fig_loyalty.update_layout(height=360, **PLOTLY_LAYOUT,
                                    xaxis_title="Điểm tích lũy", yaxis_title=None,
                                    coloraxis_showscale=False)
         st.plotly_chart(fig_loyalty, use_container_width=True)
 
-    # --- Bảng khách hàng VIP ---
     st.markdown('<div class="section-title">Bảng khách hàng VIP (Top 10 doanh thu)</div>', unsafe_allow_html=True)
     df_vip = df.groupby("customer_name").agg(
         Doanh_thu=("revenue", "sum"),
@@ -696,7 +886,6 @@ with tab_customer:
         df_vip.columns = ["Khách hàng", "Doanh thu (VNĐ)", "Đơn hàng", "Điểm tích lũy", "Giá trị đơn TB"]
         st.dataframe(df_vip, use_container_width=True, hide_index=True)
 
-    # --- Phân tích ABC / Pareto ---
     st.markdown('<div class="section-title">Phân tích ABC — Pareto sản phẩm</div>', unsafe_allow_html=True)
     df_abc = df.groupby("product_name")["revenue"].sum().reset_index().sort_values("revenue", ascending=False)
     if not df_abc.empty:
@@ -716,14 +905,15 @@ with tab_customer:
         fig_abc = px.pie(
             abc_stats, values="Doanh thu (VNĐ)", names="Nhóm",
             color="Nhóm",
-            color_discrete_map={"A": "#22c55e", "B": "#fbbf24", "C": "#ef4444"},
-            hole=0.4
+            color_discrete_map={"A": "#1a56db", "B": "#60a5fa", "C": "#bfdbfe"},
+            hole=0.45
         )
-        fig_abc.update_layout(height=320, margin=dict(l=20, r=20, t=20, b=20))
+        fig_abc.update_layout(height=320, margin=dict(l=20, r=20, t=20, b=20),
+                               paper_bgcolor="rgba(0,0,0,0)")
         st.plotly_chart(fig_abc, use_container_width=True)
 
 # ============================================================
-# TAB 3 — KHUYẾN NGHỊ SẢN PHẨM (MỚI - TÍCH HỢP TỪ GĐ3)
+# TAB 3 — KHUYẾN NGHỊ SẢN PHẨM
 # ============================================================
 with tab_recommend:
     st.markdown('<div class="section-title">🎯 Khuyến nghị sản phẩm thông minh (SVD)</div>', unsafe_allow_html=True)
@@ -731,19 +921,17 @@ with tab_recommend:
     if svd_model is None:
         st.warning("⚠️ Mô hình SVD chưa được huấn luyện. Vui lòng chạy Giai đoạn 3 để huấn luyện mô hình.")
     else:
-        # Chọn khách hàng
         customer_list = sorted(df['customer_id'].dropna().unique())
         selected_customer = st.selectbox("Chọn khách hàng để gợi ý sản phẩm", customer_list)
 
         if selected_customer:
-            # Tìm tên khách hàng
-            customer_name = df[df['customer_id'] == selected_customer]['customer_name'].iloc[0] if not df[df['customer_id'] == selected_customer].empty else "Khách hàng"
+            customer_name_row = df[df['customer_id'] == selected_customer]
+            customer_name = customer_name_row['customer_name'].iloc[0] if not customer_name_row.empty else "Khách hàng"
 
             col1, col2 = st.columns([1, 1])
 
             with col1:
-                # Lịch sử mua hàng của khách hàng
-                st.markdown(f"#### 📦 Lịch sử mua hàng của <span style='color:#3b82f6;'>{customer_name}</span>", unsafe_allow_html=True)
+                st.markdown(f"#### 📦 Lịch sử mua hàng của <span style='color:#1a56db'>{customer_name}</span>", unsafe_allow_html=True)
                 history = df[df['customer_id'] == selected_customer].groupby('product_name').agg({
                     'quantity': 'sum',
                     'revenue': 'sum',
@@ -755,14 +943,13 @@ with tab_recommend:
                         history.rename(columns={'product_name': 'Sản phẩm', 'quantity': 'Số lượng', 'revenue': 'Doanh thu', 'orders': 'Đơn hàng'}),
                         use_container_width=True,
                         hide_index=True,
-                        height=200
+                        height=220
                     )
                 else:
                     st.info("Khách hàng này chưa có lịch sử mua hàng.")
 
             with col2:
-                # Gợi ý sản phẩm
-                st.markdown(f"#### 🎯 Top 3 gợi ý cho <span style='color:#3b82f6;'>{customer_name}</span>", unsafe_allow_html=True)
+                st.markdown(f"#### 🎯 Top 3 gợi ý cho <span style='color:#1a56db'>{customer_name}</span>", unsafe_allow_html=True)
 
                 recommendations = get_recommendations(selected_customer, k=3)
 
@@ -771,48 +958,39 @@ with tab_recommend:
                         product_id = rec['product_id']
                         score = rec['score']
 
-                        # Tìm tên sản phẩm
                         product_info = df[df['product_id'] == product_id]
                         product_name = product_info['product_name'].iloc[0] if not product_info.empty else product_id
-
-                        # Tìm category
                         category = product_info['category'].iloc[0] if not product_info.empty else "N/A"
 
                         st.markdown(f"""
-                        <div class="recommendation-card">
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <span class="rank">#{idx}</span>
-                                <div>
-                                    <div class="product-name">{product_name}</div>
-                                    <div class="product-score">📂 {category} | Điểm tin cậy: {score:.3f}</div>
-                                </div>
+                        <div class="rec-card">
+                            <div class="rec-rank">{idx}</div>
+                            <div class="rec-body">
+                                <div class="rec-name">{product_name}</div>
+                                <div class="rec-meta">📂 {category}</div>
                             </div>
+                            <div class="rec-score">⭐ {score:.3f}</div>
                         </div>
                         """, unsafe_allow_html=True)
 
-                        # Giải thích SHAP (nếu có)
                         explanation = explain_recommendation(selected_customer, product_id)
                         if explanation:
                             with st.expander(f"💡 Giải thích tại sao gợi ý #{idx} này?"):
                                 st.markdown(f"""
                                 <div class="shap-card">
-                                    <div><span class="feature">👤 Khách hàng:</span> {customer_name}</div>
-                                    <div><span class="feature">📊 Điểm tích lũy:</span> {explanation['explanation']['loyalty_score']:.0f}</div>
-                                    <div><span class="feature">🛒 Đã mua:</span> {explanation['explanation']['purchase_history']:.0f} sản phẩm</div>
-                                    <div><span class="feature">💰 Tổng chi tiêu:</span> {explanation['explanation']['total_spent']:,.0f} VNĐ</div>
-                                    <div style="margin-top:8px; padding-top:8px; border-top:1px solid #e5e9f0;">
-                                        <span style="color:#64748b; font-size:13px;">📝 {explanation['interpretation']}</span>
-                                    </div>
+                                    <div class="shap-row"><span class="shap-key">👤 Khách hàng</span><span class="shap-val">{customer_name}</span></div>
+                                    <div class="shap-row"><span class="shap-key">📊 Điểm tích lũy</span><span class="shap-val">{explanation['explanation']['loyalty_score']:.0f}</span></div>
+                                    <div class="shap-row"><span class="shap-key">🛒 Đã mua</span><span class="shap-val">{explanation['explanation']['purchase_history']:.0f} sản phẩm</span></div>
+                                    <div class="shap-row"><span class="shap-key">💰 Tổng chi tiêu</span><span class="shap-val">{explanation['explanation']['total_spent']:,.0f} VNĐ</span></div>
+                                    <div class="shap-note">📝 {explanation['interpretation']}</div>
                                 </div>
                                 """, unsafe_allow_html=True)
                 else:
                     st.info("Không có gợi ý nào cho khách hàng này hoặc khách hàng đã mua tất cả sản phẩm.")
 
-        # Bảng khuyến nghị cho toàn bộ khách hàng (lấy từ warehouse nếu có)
         st.markdown('<div class="section-title" style="margin-top:20px;">📋 Bảng khuyến nghị tổng hợp</div>', unsafe_allow_html=True)
 
         try:
-            # Kiểm tra xem bảng recommendation_results có tồn tại không
             conn = duckdb.connect('nkdl_warehouse.db', read_only=True)
             tables = conn.execute("""
                 SELECT table_name FROM information_schema.tables
@@ -845,7 +1023,6 @@ with tab_recommend:
 with tab_model:
     st.markdown('<div class="section-title">🤖 Hiệu suất mô hình gợi ý sản phẩm (SVD)</div>', unsafe_allow_html=True)
 
-    # Đọc log đánh giá từ warehouse nếu có
     try:
         conn = duckdb.connect('nkdl_warehouse.db', read_only=True)
         eval_log = conn.execute("""
@@ -855,22 +1032,21 @@ with tab_model:
         """).df()
         conn.close()
     except:
-        # Fallback: dùng dữ liệu mẫu từ GĐ3
         eval_log = pd.DataFrame({
             'K': [1, 3, 5, 7],
             'Precision@K': [0.1847, 0.1914, 0.1728, 0.1401],
             'Recall@K': [0.1847, 0.5742, 0.8638, 0.9808]
         })
 
-    # Biểu đồ đường Precision & Recall
     fig_eval = px.line(
         eval_log, x='K', y=['Precision@K', 'Recall@K'],
         markers=True,
         labels={"value": "Điểm số", "variable": "Chỉ số", "K": "K (số gợi ý)"},
-        color_discrete_map={"Precision@K": "#3b82f6", "Recall@K": "#22c55e"}
+        color_discrete_map={"Precision@K": "#1a56db", "Recall@K": "#22c55e"}
     )
+    fig_eval.update_traces(line=dict(width=2.5), marker=dict(size=8))
     fig_eval.update_layout(
-        height=350, margin=dict(l=50, r=20, t=30, b=50),
+        height=350, **PLOTLY_LAYOUT,
         xaxis_title="K (số sản phẩm gợi ý)",
         yaxis_title="Điểm số",
         yaxis_range=[0, 1.05],
@@ -878,17 +1054,15 @@ with tab_model:
     )
     st.plotly_chart(fig_eval, use_container_width=True)
 
-    # Bảng chi tiết
     st.markdown('<div class="section-title">Bảng kết quả đánh giá</div>', unsafe_allow_html=True)
     eval_display = eval_log.copy()
     eval_display.columns = ["K (số gợi ý)", "Precision@K", "Recall@K"]
     st.dataframe(eval_display, use_container_width=True, hide_index=True)
 
-    # Thông tin giải thích
     st.markdown("""
-    <div style="background:#f0f9ff; padding:16px; border-radius:8px; border:1px solid #bae6fd; margin-top:16px;">
-        <h4 style="margin:0 0 8px 0; color:#0f1724;">📖 Giải thích chỉ số</h4>
-        <ul style="margin:0; padding-left:20px; color:#334155; font-size:14px;">
+    <div class="info-box">
+        <h4>📖 Giải thích chỉ số</h4>
+        <ul>
             <li><strong>Precision@K</strong>: Trong K sản phẩm được gợi ý, tỷ lệ sản phẩm khách hàng thực sự mua.</li>
             <li><strong>Recall@K</strong>: Trong tổng số sản phẩm khách hàng đã mua, tỷ lệ được mô hình tìm đúng trong top K gợi ý.</li>
             <li><strong>Nhận xét</strong>: Precision cao nhất ở K=3, Recall tăng dần theo K — phù hợp với gợi ý top 3–5 sản phẩm.</li>
@@ -896,7 +1070,6 @@ with tab_model:
     </div>
     """, unsafe_allow_html=True)
 
-    # SHAP Summary (nếu có ảnh)
     if os.path.exists('shap_summary.png'):
         st.markdown('<div class="section-title">📊 SHAP Feature Importance</div>', unsafe_allow_html=True)
         st.image('shap_summary.png', use_container_width=True)
@@ -918,7 +1091,6 @@ with tab_shap:
     else:
         st.success("Mô hình SHAP đã sẵn sàng")
         
-        # Chọn khách hàng để giải thích
         customer_list = sorted(df['customer_id'].dropna().unique())
         selected_customer_shap = st.selectbox(
             "Chọn khách hàng để xem giải thích SHAP",
@@ -927,7 +1099,6 @@ with tab_shap:
         )
         
         if selected_customer_shap:
-            # Lấy khuyến nghị cho khách hàng
             recommendations = get_recommendations(selected_customer_shap, k=5)
             
             if recommendations:
@@ -937,13 +1108,11 @@ with tab_shap:
                     product_id = rec['product_id']
                     score = rec['score']
                     
-                    # Tìm tên sản phẩm
                     product_info = df[df['product_id'] == product_id]
                     product_name = product_info['product_name'].iloc[0] if not product_info.empty else product_id
                     
                     st.markdown(f"**#{idx}: {product_name}** (Điểm: {score:.3f})")
                     
-                    # Giải thích SHAP
                     explanation = explain_recommendation(selected_customer_shap, product_id)
                     if explanation:
                         cols_shap = st.columns(len(explanation['top_features']))
@@ -955,7 +1124,7 @@ with tab_shap:
                                 
                                 st.markdown(f"""
                                 <div style="background:#ffffff; padding:12px; border-radius:8px; 
-                                            border:1px solid #e5e9f0; text-align:center; margin:4px 0;">
+                                            border:1px solid #e2e8f0; text-align:center; margin:4px 0;">
                                     <div style="font-size:12px; color:#64748b; margin-bottom:4px;">
                                         {feature['feature']}
                                     </div>
@@ -968,7 +1137,6 @@ with tab_shap:
                                 </div>
                                 """, unsafe_allow_html=True)
                         
-                        # Thông tin khách hàng
                         with st.expander(f"📋 Thông tin chi tiết khách hàng"):
                             st.markdown(f"""
                             - **Giới tính**: {explanation['explanation']['gender']}
@@ -982,7 +1150,6 @@ with tab_shap:
             else:
                 st.info("Không có khuyến nghị nào cho khách hàng này.")
     
-    # Hiển thị SHAP summary plots
     st.markdown('<div class="section-title" style="margin-top:20px;">📈 Tổng quan SHAP</div>', unsafe_allow_html=True)
     
     col_img1, col_img2 = st.columns(2)
@@ -1082,7 +1249,9 @@ Trả lời bằng tiếng Việt, dùng định dạng markdown rõ ràng.
 
 # ===================== FOOTER =====================
 st.markdown(f"""
-<div class="report-footer">
-    Báo cáo phân tích dữ liệu nội bộ &amp; Khuyến nghị sản phẩm &nbsp;|&nbsp; Cập nhật: {datetime.now().strftime('%d/%m/%Y %H:%M')}
+<div class="app-footer">
+    Báo cáo phân tích dữ liệu nội bộ &amp; Khuyến nghị sản phẩm &nbsp;·&nbsp;
+    Cập nhật: {datetime.now().strftime('%d/%m/%Y %H:%M')} &nbsp;·&nbsp;
+    Powered by SVD + SHAP Explainable AI
 </div>
 """, unsafe_allow_html=True)
